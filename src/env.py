@@ -9,16 +9,49 @@ from torchrl.envs.transforms import (
     Compose,
     FrameSkipTransform,
 )
-import retro 
+import numpy as np
+import retro
+import gymnasium as gym
 training=False
 
-base_env = GymWrapper(
-    retro.make(
+class Discretizer(gym.ActionWrapper):
+# Wrap an env to use COMBOS as its discrete action space
+
+    def __init__(self, env, combos):
+        super().__init__(env)
+        buttons = env.unwrapped.buttons 
+        self._decode_discrete_action = []
+        for c in combos:
+            arr = np.array([False] * env.action_space.n) # All positions except for the button we want to press should be False
+            for button in c:
+                arr[buttons.index(button)] = True # Set the button position in the array to True
+            self._decode_discrete_action.append(arr)
+        self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action)) 
+    
+    def action(self, action):
+        return self._decode_discrete_action[action].copy() # Convert integer into expected boolean arr
+
+MARIO_ACTIONS = [
+    [],                   # Do nothing
+    ['RIGHT'],            # Walk right
+    ['RIGHT', 'B'],       # Run right  
+    ['RIGHT', 'A'],       # Jump right
+    ['RIGHT', 'B', 'A'],  # Run + jump right
+    ['LEFT'],             # Walk left
+    ['LEFT', 'B'],        # Run left
+    ['LEFT', 'A'],        # Jump left
+    ['LEFT', 'B', 'A'],   # Run + jump left
+    ['A'],                # Jump in place
+    ['Y'],                # Attack
+    ['DOWN'],             # Duck/enter pipe
+    ['UP'],               # Look up/climb
+]
+base_env = retro.make(
         'SuperMarioWorld-Snes', 
-        use_restricted_actions=retro.Actions.DISCRETE, 
         render_mode='rgb_array' if training else 'human'
     )      
-)
+
+base_env = GymWrapper(Discretizer(base_env, MARIO_ACTIONS))
 
 env = TransformedEnv(base_env, Compose(*[
     FrameSkipTransform(frame_skip = 4),
@@ -29,5 +62,5 @@ env = TransformedEnv(base_env, Compose(*[
     StepCounter(),
     RewardSum(),
   ]))
-
+print(env.action_space) 
 
