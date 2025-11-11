@@ -12,7 +12,8 @@ from torchrl.envs.transforms import (
 import numpy as np
 import retro
 import gymnasium as gym
-training=False
+
+training=False # TODO: get this to work with command line args across all files
 
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space

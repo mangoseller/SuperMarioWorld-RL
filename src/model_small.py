@@ -38,8 +38,7 @@ class ImpalaSmall(nn.Module):
     def forward(self, x):
         x = x / 255 # Normalize pixels
         x = self.feature_extractor(x)
-        policy = t.softmax(self.policy_head(x), dim=1)
-        return policy, self.value_head(x)
+        return self.policy_head(x), self.value_head(x)
 
 
 if __name__ == "__main__":
