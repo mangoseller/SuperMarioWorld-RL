@@ -61,7 +61,7 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
         assert all(i.shape == (len(buffer), ) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
         values = values.detach()        
 
-        # Final timestamp has no next state, and at timestep t we need V(s_{t+1})
+        # At timestep t we need V(s_{t+1})
         advantages = t.zeros_like(rewards)
         gae = 0
 
