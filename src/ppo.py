@@ -1,6 +1,5 @@
 import torch as t 
 from torch.distributions import Categorical
-from buffer import RolloutBuffer
 
 class PPO: # TODO: Implement lots of rollout at once, multiple envs
     def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2 =0.01):
@@ -59,28 +58,27 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
         value_loss = t.mean((values.squeeze() - returns)**2)
         return policy_loss + (self.c1 * value_loss) + (self.c2 * -distributions.entropy().mean()) # Total loss
 
-    
     def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95):
         _, rewards, _, _, values, dones =  buffer.get()
-        assert all(t.shape == (len(buffer), ) for t in [rewards, values, dones]), "Tensors are of unexpected shape!"
+        assert all(i.shape == (len(buffer), ) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
         values = values.detach()        
 
         # Final timestamp has no next state, and at timestep t we need V(s_{t+1})
         advantages = t.zeros_like(rewards)
         gae = 0
 
-        for t in range(len(buffer)-1, -1, -1):
-            if t == len(buffer) - 1:
+        for i in range(len(buffer)-1, -1, -1):
+            if i == len(buffer) - 1:
                 next_value = 0
             else:
-                next_value = values[t+1]
+                next_value = values[i+1]
 
             # Compute TD Error
-            delta = rewards[t] + gamma * next_value * (1-dones[t]) - values[t]
+            delta = rewards[i] + gamma * next_value * (1-dones[i]) - values[i]
             
             # Accumulate gae
-            gae = delta + gamma * lambda_ * (1 - dones[t]) * gae
-            advantages[t] = gae
+            gae = delta + gamma * lambda_ * (1 - dones[i]) * gae
+            advantages[i] = gae
 
         returns = advantages + values
         return advantages, returns
