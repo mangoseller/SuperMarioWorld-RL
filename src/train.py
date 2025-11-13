@@ -77,8 +77,8 @@ episode_num = 0
 
 for step in range(num_training_steps):
     action, log_prob, value = policy.action_selection(state)
-    if step % 50 == 0:
-        print(f"Step {step}: Action={action.item()}, Value={value:.3f}")
+    # if step % 50 == 0:
+    #    print(f"Step {step}: Action={action.item()}, Value={value:.3f}")
 
     # Take a step
     environment["action"] = action.unsqueeze(0)

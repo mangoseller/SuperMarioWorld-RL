@@ -32,6 +32,44 @@ class Discretizer(gym.ActionWrapper):
     def action(self, action):
         return self._decode_discrete_action[action].copy() # Convert integer into expected boolean arr
 
+class HandleMarioLifeLoss(gym.Wrapper):
+# Frame skip that stops on life loss to allow for early episode stopping
+    def __init__(self, env, skip=4):
+        super().__init__(env)
+        self.skip = skip
+        self.prev_lives = None
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        self.prev_lives = info.get('lives', None)
+        return obs, info
+
+    def step(self, action):
+        total_reward = 0.0
+        terminated, truncated = False, False
+
+        for _ in range(self.skip):
+            obs, reward, term, trunc, info = self.env.step(action)
+            total_reward += reward
+
+            current_lives = info.get('lives', None)
+
+            # Check for life loss
+            if self.prev_lives is not None and current_lives is not None \
+            and current_lives < self.prev_lives:
+                terminated = True
+                break # Stop frame skipping
+
+            self.prev_lives = current_lives
+            terminated = term
+            truncated = trunc
+
+            if term or trunc:
+                break # Stop on other done conditions
+
+        return obs, total_reward, terminated, truncated, info
+
+    
 def evaluate(agent, env, num_episodes=5):
 
     eval_rewards, eval_lengths = [], []
@@ -85,12 +123,16 @@ MARIO_ACTIONS = [
 ]
 
 base_env = retro.make(
-        'SuperMarioWorld-Snes', 
+        'SuperMarioWorld-Snes',
+        state='YoshiIsland2',
         render_mode='rgb_array' if training else 'human'
-    )      
-base_env = GymWrapper(Discretizer(base_env, MARIO_ACTIONS))
+    )
+base_env.reset()
+
+base_env = Discretizer(base_env, MARIO_ACTIONS)
+base_env = HandleMarioLifeLoss(base_env, skip=4)
+base_env = GymWrapper(base_env)
 env = TransformedEnv(base_env, Compose(*[
-    FrameSkipTransform(frame_skip = 4),
     ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors
     Resize(84, 84), # Can also do 96x96, 128x128
     GrayScale(),

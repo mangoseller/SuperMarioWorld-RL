@@ -130,7 +130,7 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
                 # Clip grad norms to prevent exploding gradients
                 t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
-        print(f"Average loss: {np.mean([loss.item() for loss in total_losses])}")
+        # print(f"Average loss: {np.mean([loss.item() for loss in total_losses])}")
 
         return
 
