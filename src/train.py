@@ -57,7 +57,6 @@ last_checkpoint = 0
 # Initialize tracking variables 
 episode_rewards = []
 episode_lengths = []
-global_step_counter = 0 # Steps across all episodes
 num_updates = 0 # Number of PPO updates performed
 episode_reward = 0
 episode_length = 0

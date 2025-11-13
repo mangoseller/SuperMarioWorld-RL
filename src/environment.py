@@ -43,7 +43,7 @@ def evaluate(agent, env, num_episodes=5):
         done = False
 
         while not done:
-            action = agent.action_selection_eval(state)
+            action = agent.eval_action_selection(state)
             eval_environment = env.step(action)
             state = eval_environment["next"]["pixels"]
             reward = eval_environment["next"]["reward"].item()
