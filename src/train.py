@@ -1,35 +1,20 @@
 import torch as t 
 import numpy as np
-import os 
 import wandb
 from model_small import ImpalaSmall
 from ppo import PPO
 from buffer import RolloutBuffer
 from environment import evaluate, make_training_env
+import argparse
+from training_utils import TRAINING_CONFIG, TESTING_CONFIG
 
-USE_WANDB = False
-if USE_WANDB:
-    api_key = os.environ.get("WANDB_API_KEY")
-    if api_key is None:
-        raise RuntimeError("WANDB_API_KEY not set in environment")
 
-    wandb.login(key=api_key)
-    run = wandb.init(
-    project="marioRL",
-    config={
-       "learning_rate": 1e-4, # TODO: add learning rate scheduling
-       "gamma": 0.99,
-       "lambda": 0.95, 
-       "epsilon": 1e-8, # Advantage Normalization
-       "clip_eps": 0.2, # PPO clipping
-       "c1": 0.5,
-       "c2": 0.01,
-       "architecture": "IMAPLASmall",
-       "epochs": 4,
-       "buffer_size": 4096,
-       "minibatch_size": 64,
-    },
-    )
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', choices=['train', 'testing'], default='test')
+args=parser.parse_args()
+config = TRAINING_CONFIG if args.config == 'train' else TESTING_CONFIG
+run = config.setup_wandb()
+
 
 # assert t.cuda.is_available(), "GPU is not available!"
 # device = 'cuda'
@@ -38,35 +23,19 @@ agent = ImpalaSmall().to(device)
 # assert next(agent.parameters()).is_cuda, "Model is not on GPU!"
 policy = PPO(
     model=agent,
-    lr=1e-4, # TODO: Implement LR Scheduling
-    epsilon=0.2,
+    lr=config.learning_rate, # TODO: Implement LR Scheduling
+    epsilon=config.clip_eps,
     optimizer=t.optim.Adam,
     device=device,
-    c1=0.5,
-    c2=0.01
+    c1=config.c1,
+    c2=config.c2
 )
 
 # Create buffer, initialize environment and get first state 
-# buffer = RolloutBuffer(4096, device)
-# environment = env.reset()
-# state = environment['pixels']
-# num_training_steps = int(1e6) # Change to 20-50M steps when training is set up correctly
-# eval_freq = 250_000
-# last_eval = 0
-# checkpoint_freq = 200_000
-# last_checkpoint = 0
-
-
-# Testing Params:
-buffer = RolloutBuffer(512, device)
+buffer = RolloutBuffer(config.buffer_size, device)
 env = make_training_env()
 environment = env.reset()
 state = environment['pixels']
-num_training_steps = 50000
-eval_freq = 50
-checkpoint_freq = 10000
-last_checkpoint = 0
-last_eval=0
 
 # Initialize tracking variables 
 episode_rewards = []
@@ -75,8 +44,10 @@ num_updates = 0 # Number of PPO updates performed
 episode_reward = 0
 episode_length = 0
 episode_num = 0
+last_checkpoint = 0
+last_eval = 0
 
-for step in range(num_training_steps):
+for step in range(config.num_training_steps):
     action, log_prob, value = policy.action_selection(state)
     # if step % 50 == 0:
     #    print(f"Step {step}: Action={action.item()}, Value={value:.3f}")
@@ -103,12 +74,12 @@ for step in range(num_training_steps):
         episode_num += 1
 
     # Evaluate with agent taking optimal actions
-    if step - last_eval >= eval_freq:
+    if step - last_eval >= config.eval_freq:
         # Close training env
         env.close()
         eval_metrics = evaluate(policy, num_episodes=5, record_dir='evals')
         eval_metrics["Step"] = step 
-        if USE_WANDB:
+        if config.USE_WANDB:
             wandb.log(eval_metrics)
 
         env = make_training_env()
@@ -123,7 +94,7 @@ for step in range(num_training_steps):
         num_updates += 1
         # Log metrics
         if len(episode_rewards) > 0:
-            if USE_WANDB:
+            if config.USE_WANDB:
                 wandb.log({
                     "train/mean_reward": np.mean(episode_rewards),
                     "train/mean_length": np.mean(episode_lengths),
@@ -136,16 +107,16 @@ for step in range(num_training_steps):
         buffer.clear()
 
         # Save model at Checkpoints
-        if step - last_checkpoint >= checkpoint_freq:
+        if step - last_checkpoint >= config.checkpoint_freq:
             model_path = f"ImpalaSmall{episode_num}.pt"
             t.save(agent.state_dict(), model_path)
-            if USE_WANDB:
+            if config.USE_WANDB:
                 artifact = wandb.Artifact(f"marioRLep{episode_num}", type="model")
                 artifact.add_file(model_path)
                 run.log_artifact(artifact)
             last_checkpoint = step
 
-if USE_WANDB:
+if config.USE_WANDB:
     wandb.finish()
 
 

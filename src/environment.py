@@ -13,7 +13,6 @@ import retro
 import gymnasium as gym
 import os
 from gymnasium.wrappers import RecordVideo
-training=False
 
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space
@@ -158,7 +157,7 @@ make_training_env = lambda: prepare_env(
         retro.make(
         'SuperMarioWorld-Snes',
         state='YoshiIsland2',
-        render_mode='rgb_array' if training else 'human'
+        render_mode='human' # Change to 'rgb_array' when debugging finished
     ))
 
 
