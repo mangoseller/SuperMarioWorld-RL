@@ -4,4 +4,5 @@
 /src/stable-retro/
 /src/*.bk2
 /src/*.bk2/
+/src/evals/
 !.gitignore

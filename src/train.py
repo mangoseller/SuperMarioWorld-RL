@@ -5,7 +5,7 @@ import wandb
 from model_small import ImpalaSmall
 from ppo import PPO
 from buffer import RolloutBuffer
-from environment import env, eval_env, evaluate
+from environment import evaluate, make_training_env
 
 USE_WANDB = False
 if USE_WANDB:
@@ -59,10 +59,11 @@ policy = PPO(
 
 # Testing Params:
 buffer = RolloutBuffer(512, device)
+env = make_training_env()
 environment = env.reset()
 state = environment['pixels']
 num_training_steps = 50000
-eval_freq = int(1e14)
+eval_freq = 50
 checkpoint_freq = 10000
 last_checkpoint = 0
 last_eval=0
@@ -94,13 +95,6 @@ for step in range(num_training_steps):
     episode_reward += reward
     episode_length += 1
 
-    # Evaluate with agent taking optimal actions
-    if step - last_eval >= eval_freq:
-        eval_metrics = evaluate(policy, eval_env, num_episodes=5)
-        eval_metrics["Step"] = step 
-        wandb.log(eval_metrics)
-        last_eval = step
-
     if done:
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
@@ -108,10 +102,20 @@ for step in range(num_training_steps):
         episode_length = 0 
         episode_num += 1
 
+    # Evaluate with agent taking optimal actions
+    if step - last_eval >= eval_freq:
+        # Close training env
+        env.close()
+        eval_metrics = evaluate(policy, num_episodes=5, record_dir='evals')
+        eval_metrics["Step"] = step 
+        if USE_WANDB:
+            wandb.log(eval_metrics)
+
+        env = make_training_env()
         environment = env.reset()
         state = environment["pixels"]
-    else:
-        state = next_state
+        last_eval = step
+
 
     # Update PPO when buffer is full
     if buffer.idx == buffer.capacity:

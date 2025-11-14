@@ -7,12 +7,12 @@ from torchrl.envs.transforms import (
     StepCounter,
     RewardSum, 
     Compose,
-    FrameSkipTransform,
 )
 import numpy as np
 import retro
 import gymnasium as gym
-
+import os
+from gymnasium.wrappers import RecordVideo
 training=False
 
 class Discretizer(gym.ActionWrapper):
@@ -69,12 +69,41 @@ class HandleMarioLifeLoss(gym.Wrapper):
 
         return obs, total_reward, terminated, truncated, info
 
+def prepare_env(env, skip=4, record=False, record_dir=None):
     
-def evaluate(agent, env, num_episodes=5):
+    wrapped_env = Discretizer(env, MARIO_ACTIONS)
+    wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=4)
 
+    if record:
+        wrapped_env = RecordVideo(
+            wrapped_env,
+            video_folder=record_dir,
+            episode_trigger=lambda x: True, # Record every episode 
+            name_prefix=f"eval"
+        )
+
+    wrapped_env = GymWrapper(wrapped_env)
+    return TransformedEnv(wrapped_env, Compose(*[
+    ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors
+    Resize(84, 84), # Can also do 96x96, 128x128
+    GrayScale(),
+    CatFrames(N=4, dim=-3), # dim -3 stacks frames over the channel dimension (does this make sense with gray frames?)
+    StepCounter(),
+    RewardSum(),
+  ]))
+ 
+def evaluate(agent, num_episodes=5, record_dir='/evals'):
+    
     eval_rewards, eval_lengths = [], []
+    os.makedirs(record_dir, exist_ok=True)
+    eval_env = retro.make('SuperMarioWorld-Snes',
+                          render_mode='rgb_array',
+                          state='YoshiIsland2',
+                          )
+    eval_env = prepare_env(eval_env, record=True, record_dir=record_dir)
+
     for _ in range(num_episodes):
-        eval_environment = env.reset()
+        eval_environment = eval_env.reset()
         state = eval_environment["pixels"]
         episode_reward = 0
         episode_length = 0
@@ -83,7 +112,7 @@ def evaluate(agent, env, num_episodes=5):
         while not done:
             action = agent.eval_action_selection(state)
             eval_environment["action"] = action
-            eval_environment = env.step(eval_environment)
+            eval_environment = eval_env.step(eval_environment)
             state = eval_environment["next"]["pixels"]
             reward = eval_environment["next"]["reward"].item()
             done = eval_environment["next"]["done"].item()
@@ -98,6 +127,8 @@ def evaluate(agent, env, num_episodes=5):
         eval_rewards.append(episode_reward)
         eval_lengths.append(episode_length)
 
+    eval_env.close()
+
     return {
         "eval/mean_reward": np.mean(eval_rewards),
         "eval/std_reward": np.std(eval_rewards),
@@ -105,6 +136,7 @@ def evaluate(agent, env, num_episodes=5):
         "eval/max_reward": np.max(eval_rewards),
         "eval/min_reward": np.min(eval_rewards)
     }
+
 
 MARIO_ACTIONS = [
     [],                   # Do nothing
@@ -122,35 +154,14 @@ MARIO_ACTIONS = [
     ['UP'],               # Look up/climb
 ]
 
-base_env = retro.make(
+make_training_env = lambda: prepare_env(
+        retro.make(
         'SuperMarioWorld-Snes',
         state='YoshiIsland2',
         render_mode='rgb_array' if training else 'human'
-    )
-base_env.reset()
+    ))
 
-base_env = Discretizer(base_env, MARIO_ACTIONS)
-base_env = HandleMarioLifeLoss(base_env, skip=4)
-base_env = GymWrapper(base_env)
-env = TransformedEnv(base_env, Compose(*[
-    ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors
-    Resize(84, 84), # Can also do 96x96, 128x128
-    GrayScale(),
-    CatFrames(N=4, dim=-3), # dim -3 stacks frames over the channel dimension (does this make sense with gray frames?)
-    StepCounter(),
-    RewardSum(),
-  ]))
-eval_env = env # TODO: Fix this bug, allow multiple envs
-# eval_env = retro.make('SuperMarioWorld-Snes', render_mode='rgb_array')
-# eval_env = GymWrapper(Discretizer(eval_env, MARIO_ACTIONS))
-# eval_env = TransformedEnv(eval_env, Compose(*[
-#     FrameSkipTransform(frame_skip=4),
-#     ToTensorImage(),
-#     Resize(84, 84),
-#     GrayScale(),
-#     CatFrames(N=4, dim=-3),
-#     StepCounter(),
-#     RewardSum(),
-# ]))
+
+# env = make_training_env()
 # print(env.action_space) 
 
