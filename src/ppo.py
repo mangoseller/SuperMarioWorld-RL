@@ -1,7 +1,7 @@
 import torch as t 
 from torch.distributions import Categorical
-import numpy as np
-class PPO: # TODO: Implement lots of rollout at once, multiple envs
+
+class PPO:
     def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01):
         self.model = model
         self.optimizer = optimizer(model.parameters(), lr=lr)
@@ -71,24 +71,32 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
 
     def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95, next_state=None):
         _, rewards, _, _, values, dones =  buffer.get()
-        assert all(i.shape == (len(buffer), ) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
-        values = values.detach()        
+        assert all(i.shape == (rewards.shape[0],) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
+        values = values.detach()       
+
+        # Reshape from flattened(steps * num_envs,) to (steps, num_envs)
+        reshape = lambda tensor: tensor.view(len(buffer), buffer.rewards.shape[1])
+        rewards = reshape(rewards)
+        values = reshape(values)
+        dones = reshape(dones)
 
         # At timestep t we need V(s_{t+1})
         advantages = t.zeros_like(rewards)
-        gae = 0
+       
 
         # Get the value of the next state to find the value of the most recent, (first) state
         if next_state is not None:
             with t.no_grad():
-                _, last_value = self.model(next_state.unsqueeze(0).to(self.device))
-                last_value = last_value.squeeze().item()
+                _, last_values = self.model(next_state.to(self.device))
+                last_values = last_values.squeeze(-1)
         else:
-            last_value = 0
+            last_values = t.zeros(buffer.rewards.shape[1], device=self.device)
+
+        gaes = t.zeros(buffer.rewards.shape[1], device=self.device)
 
         for i in range(len(buffer)-1, -1, -1):
             if i == len(buffer) - 1:
-                next_value = last_value * (1-dones[i])
+                next_value = last_values * (1-dones[i])
             else:
                 next_value = values[i+1]
 
@@ -96,9 +104,12 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
             delta = rewards[i] + gamma * next_value * (1-dones[i]) - values[i]
             
             # Accumulate gae
-            gae = delta + gamma * lambda_ * (1 - dones[i]) * gae
-            advantages[i] = gae
+            gaes = delta + gamma * lambda_ * (1 - dones[i]) * gaes
+            advantages[i] = gaes
 
+        # Flatten for the update
+        advantages = advantages.view(-1)
+        values = values.view(-1)
         returns = advantages + values
         return advantages, returns
 
@@ -110,7 +121,7 @@ class PPO: # TODO: Implement lots of rollout at once, multiple envs
         states, _, actions, log_probs, _, _ = buffer.get()
         total_losses = []
         for _ in range(1, num_epochs+1):
-            permuted_indices = t.randperm(len(buffer))
+            permuted_indices = t.randperm(states.shape[0]) 
             states = states[permuted_indices]
             actions = actions[permuted_indices]
             log_probs = log_probs[permuted_indices]

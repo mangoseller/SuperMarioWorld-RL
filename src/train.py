@@ -49,6 +49,8 @@ if __name__ == "__main__":
     # Initialize tracking variables for each env
     episode_rewards = [0.0] * config.num_envs
     episode_lengths = [0] * config.num_envs
+    completed_lengths = []
+    completed_rewards = []
     num_updates = 0 # Number of PPO updates performed
     episode_reward = 0
     episode_length = 0
@@ -89,24 +91,24 @@ if __name__ == "__main__":
             episode_lengths[i] += 1
 
             if dones[i].item(): 
+                completed_rewards.append(episode_rewards[i])
+                completed_lengths.append(episode_lengths[i])
+                # Reset this envs tracking
+
+                episode_rewards[i] = 0.0 
+                episode_lengths[i] = 0
                 episode_num += 1
 
         # Evaluate with agent taking optimal actions as per current policy
         if total_env_steps - last_eval_steps >= config.eval_freq:
-            # Close training env
-            env.close()
-            del env
-            gc.collect()
-            time.sleep(0.5)
             eval_metrics = eval_parallel_safe(policy, num_episodes=1, record_dir='evals')
             eval_metrics["total_env_steps"] = total_env_steps
             if config.USE_WANDB:
                 wandb.log(eval_metrics)
 
-            env = make_training_env(num_envs=config.num_envs)
-            environment = env.reset()
-            state = environment["pixels"]
-            last_eval = total_env_steps
+            last_eval_steps = total_env_steps
+
+        state = next_state
 
 
         # Update PPO when buffer is full
@@ -123,8 +125,8 @@ if __name__ == "__main__":
                         "global_step": step,
                         "num_updates": num_updates,
                     })
-                episode_rewards.clear()
-                episode_lengths.clear()
+                completed_rewards.clear()
+                completed_lengths.clear()
             buffer.clear()
 
             # Save model at Checkpoints
@@ -139,6 +141,8 @@ if __name__ == "__main__":
 
     if config.USE_WANDB:
         wandb.finish()
+    else:
+        print("Test complete without incident.")
 
 
 

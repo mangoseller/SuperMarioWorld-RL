@@ -67,10 +67,10 @@ TRAINING_CONFIG = TrainingConfig(
 )
 
 TESTING_CONFIG = TrainingConfig(
-    num_envs=8,
-    num_training_steps=50_000,
-    buffer_size=512,
-    eval_freq=100,
+    num_envs=2,
+    num_training_steps=1000,
+    buffer_size=200,
+    eval_freq=200,
     checkpoint_freq=10_000,
     USE_WANDB=False
 )
