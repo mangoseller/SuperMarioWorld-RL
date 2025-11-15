@@ -1,4 +1,4 @@
-from torchrl.envs import TransformedEnv, GymWrapper
+from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv
 from torchrl.envs.transforms import (
     ToTensorImage,
     Resize,
@@ -13,7 +13,10 @@ import retro
 import gymnasium as gym
 import os
 from gymnasium.wrappers import RecordVideo
-
+from multiprocessing import Process, Queue
+from model_small import ImpalaSmall
+from ppo import PPO
+import torch as t 
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space
 
@@ -136,6 +139,46 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
         "eval/min_reward": np.min(eval_rewards)
     }
 
+def _run_eval_(model_state_dict, num_episodes, record_dir, result_queue):    
+    agent = ImpalaSmall().to('cpu') # TODO: make this work more generally 
+    agent.load_state_dict(model_state_dict)
+
+    eval_policy = PPO(agent, lr=1e-4, epsilon=0.2, optimizer=t.optim.Adam, device='cpu') # TODO make this work on GPU, dont hard code vals
+    metrics = evaluate(eval_policy, num_episodes, record_dir)
+    result_queue.put(metrics)
+
+def eval_parallel_safe(policy, num_episodes=3, record_dir='evals'):
+# Run evaluate in a sub-process 
+
+    result_queue = Queue()
+    process = Process(target=_run_eval_, args=(
+        policy.model.state_dict(), num_episodes, record_dir, result_queue
+    ))
+    process.start()
+    process.join()
+    return result_queue.get()
+
+
+def make_training_env(num_envs=1):
+
+    if num_envs == 1:
+        return prepare_env(
+            retro.make(
+            'SuperMarioWorld-Snes',
+            state='YoshiIsland2',
+            render_mode='human' # Change to 'rgb_array' when debugging finished
+        ))
+    else:
+        return ParallelEnv(
+            num_workers=num_envs,
+            create_env_fn=lambda: prepare_env(
+        retro.make(
+        'SuperMarioWorld-Snes',
+        state='YoshiIsland2',
+        render_mode='rgb_array' # human doesn't work for parallel envs
+    ))
+        )
+
 
 MARIO_ACTIONS = [
     [],                   # Do nothing
@@ -153,14 +196,6 @@ MARIO_ACTIONS = [
     ['UP'],               # Look up/climb
 ]
 
-make_training_env = lambda: prepare_env(
-        retro.make(
-        'SuperMarioWorld-Snes',
-        state='YoshiIsland2',
-        render_mode='human' # Change to 'rgb_array' when debugging finished
-    ))
 
-
-# env = make_training_env()
 # print(env.action_space) 
 
