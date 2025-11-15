@@ -16,10 +16,11 @@ from gymnasium.wrappers import RecordVideo
 from multiprocessing import Process, Queue
 from model_small import ImpalaSmall
 from ppo import PPO
-import torch as t 
+import torch as t
+import time
+
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space
-
     def __init__(self, env, combos):
         super().__init__(env)
         buttons = env.unwrapped.buttons 
@@ -32,10 +33,10 @@ class Discretizer(gym.ActionWrapper):
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action)) 
     
     def action(self, action):
-        return self._decode_discrete_action[action].copy() # Convert integer into expected boolean arr
+        return self._decode_discrete_action[action].copy() # Convert integer action into expected boolean arr of button presses
 
 class HandleMarioLifeLoss(gym.Wrapper):
-# Frame skip that stops on life loss to allow for early episode stopping
+# Frame skip that stops on life loss to allow for episode termination on death
     def __init__(self, env, skip=4):
         super().__init__(env)
         self.skip = skip
@@ -53,7 +54,6 @@ class HandleMarioLifeLoss(gym.Wrapper):
         for _ in range(self.skip):
             obs, reward, term, trunc, info = self.env.step(action)
             total_reward += reward
-
             current_lives = info.get('lives', None)
 
             # Check for life loss
@@ -65,26 +65,23 @@ class HandleMarioLifeLoss(gym.Wrapper):
             self.prev_lives = current_lives
             terminated = term
             truncated = trunc
-
             if term or trunc:
                 break # Stop on other done conditions
 
         return obs, total_reward, terminated, truncated, info
 
 def prepare_env(env, skip=4, record=False, record_dir=None):
-    
     wrapped_env = Discretizer(env, MARIO_ACTIONS)
-    wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=4)
-
+    wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=4) # Frame skip
     if record:
         wrapped_env = RecordVideo(
             wrapped_env,
             video_folder=record_dir,
-            episode_trigger=lambda x: True, # Record every episode 
-            name_prefix=f"eval"
+            episode_trigger=lambda x: True, # Record every episode, used for eval runs
+            name_prefix=f"eval_{int(time.time())}"
         )
-
     wrapped_env = GymWrapper(wrapped_env)
+
     return TransformedEnv(wrapped_env, Compose(*[
     ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors
     Resize(84, 84), # Can also do 96x96, 128x128
@@ -95,7 +92,6 @@ def prepare_env(env, skip=4, record=False, record_dir=None):
   ]))
  
 def evaluate(agent, num_episodes=5, record_dir='/evals'):
-    
     eval_rewards, eval_lengths = [], []
     os.makedirs(record_dir, exist_ok=True)
     eval_env = retro.make('SuperMarioWorld-Snes',
@@ -103,7 +99,6 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
                           state='YoshiIsland2',
                           )
     eval_env = prepare_env(eval_env, record=True, record_dir=record_dir)
-
     for _ in range(num_episodes):
         eval_environment = eval_env.reset()
         state = eval_environment["pixels"]
@@ -118,13 +113,8 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
             state = eval_environment["next"]["pixels"]
             reward = eval_environment["next"]["reward"].item()
             done = eval_environment["next"]["done"].item()
-
             episode_reward += reward
             episode_length += 1
-
-            # Prevent infinite loops
-            if episode_length > 10000:
-                break
         
         eval_rewards.append(episode_reward)
         eval_lengths.append(episode_length)
@@ -139,22 +129,23 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
         "eval/min_reward": np.min(eval_rewards)
     }
 
-def _run_eval_(model_state_dict, num_episodes, record_dir, result_queue):    
-    agent = ImpalaSmall().to('cpu') # TODO: make this work more generally 
-    agent.load_state_dict(model_state_dict)
 
-    eval_policy = PPO(agent, lr=1e-4, epsilon=0.2, optimizer=t.optim.Adam, device='cpu') # TODO make this work on GPU, dont hard code vals
+def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue):    
+    agent = model().to('cpu')
+    agent.load_state_dict(model_state_dict)
+    eval_policy = PPO(agent, config.learning_rate, epsilon=config.clip_eps, 
+                      optimizer=t.optim.Adam, device='cpu', 
+                      c1=config.c1, c2=config.c2)
     metrics = evaluate(eval_policy, num_episodes, record_dir)
     result_queue.put(metrics)
 
-def eval_parallel_safe(policy, num_episodes=3, record_dir='evals'):
+def eval_parallel_safe(model, policy, config, record_dir, num_episodes=3):
 # Run evaluate in a sub-process 
-
     result_queue = Queue()
     # Move model weights to cpu
     cpu_state_dicts = {k: v.cpu() for k, v in policy.model.state_dict().items()}
     process = Process(target=_run_eval_, args=(
-        cpu_state_dicts, num_episodes, record_dir, result_queue
+        model, cpu_state_dicts, num_episodes, config, record_dir, result_queue
     ))
     process.start()
     process.join()
@@ -162,7 +153,6 @@ def eval_parallel_safe(policy, num_episodes=3, record_dir='evals'):
 
 
 def make_training_env(num_envs=1):
-
     if num_envs == 1:
         return prepare_env(
             retro.make(
@@ -179,8 +169,7 @@ def make_training_env(num_envs=1):
         state='YoshiIsland2',
         render_mode='rgb_array' # human doesn't work for parallel envs
     ))
-        )
-
+)
 
 MARIO_ACTIONS = [
     [],                   # Do nothing
@@ -197,7 +186,6 @@ MARIO_ACTIONS = [
     ['DOWN'],             # Duck/enter pipe
     ['UP'],               # Look up/climb
 ]
-
 
 # print(env.action_space) 
 
