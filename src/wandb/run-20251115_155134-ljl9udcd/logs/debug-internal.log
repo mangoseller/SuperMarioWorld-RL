@@ -1,0 +1,20 @@
+{"time":"2025-11-15T15:51:34.619712777+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:51:34.871573215+11:00","level":"INFO","msg":"stream: created new stream","id":"ljl9udcd"}
+{"time":"2025-11-15T15:51:34.871617449+11:00","level":"INFO","msg":"handler: started","stream_id":"ljl9udcd"}
+{"time":"2025-11-15T15:51:34.871714985+11:00","level":"INFO","msg":"stream: started","id":"ljl9udcd"}
+{"time":"2025-11-15T15:51:34.871725345+11:00","level":"INFO","msg":"writer: started","stream_id":"ljl9udcd"}
+{"time":"2025-11-15T15:51:34.871737258+11:00","level":"INFO","msg":"sender: started","stream_id":"ljl9udcd"}
+{"time":"2025-11-15T15:52:05.297484543+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:20.29797312+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:35.297227159+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:50.297569186+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:05.29737054+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:20.297287052+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:35.297442186+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:50.29803432+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:05.297784431+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:09.822565349+11:00","level":"INFO","msg":"stream: closing","id":"ljl9udcd"}
+{"time":"2025-11-15T15:54:10.441965+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:54:10.793933482+11:00","level":"INFO","msg":"handler: closed","stream_id":"ljl9udcd"}
+{"time":"2025-11-15T15:54:10.793975803+11:00","level":"INFO","msg":"sender: closed","stream_id":"ljl9udcd"}
+{"time":"2025-11-15T15:54:10.793983167+11:00","level":"INFO","msg":"stream: closed","id":"ljl9udcd"}

@@ -1,0 +1,63 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            4204gdprmc2qnune4gyd41s3ijfemiqj:
+                cpu_count: 8
+                cpu_count_logical: 16
+                disk:
+                    /:
+                        total: "305402470400"
+                        used: "181327552512"
+                email: samuelparson122@gmail.com
+                executable: /home/sam/Documents/marioRL_3.10/venv/bin/python
+                git:
+                    commit: bb5bfa83014fbc36e98cce72a63839dbf9aca130
+                    remote: git@github.com:mangoseller/mario_RL.git
+                host: sam-B650M-GAMING-WIFI
+                memory:
+                    total: "32703377408"
+                os: Linux-6.14.0-35-generic-x86_64-with-glibc2.39
+                program: <python with no main file>
+                python: CPython 3.10.19
+                root: /home/sam/Documents/marioRL_3.10/src
+                startedAt: "2025-11-15T04:50:55.070584Z"
+                writerId: 4204gdprmc2qnune4gyd41s3ijfemiqj
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 105
+            "2":
+                - 1
+                - 41
+                - 105
+            "3":
+                - 16
+            "4": 3.10.19
+            "5": 0.23.0
+            "12": 0.23.0
+            "13": linux-x86_64
+architecture:
+    value: ImpalaSmall
+buffer_size:
+    value: 50
+c1:
+    value: 0.5
+c2:
+    value: 0.01
+clip_eps:
+    value: 0.2
+epochs:
+    value: 4
+epsilon:
+    value: 1e-08
+gamma:
+    value: 0.99
+lambda:
+    value: 0.95
+learning_rate:
+    value: 0.0001
+minibatch_size:
+    value: 64

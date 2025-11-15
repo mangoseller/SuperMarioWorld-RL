@@ -1,0 +1,3 @@
+/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/gymnasium/wrappers/rendering.py:293: UserWarning: [33mWARN: Overwriting existing videos at /home/sam/Documents/marioRL_3.10/src/evals folder (try specifying a different `video_folder` for the `RecordVideo` wrapper if this is not desired)[0m
+  logger.warn(
+Process Process-19:

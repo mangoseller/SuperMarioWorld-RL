@@ -1,0 +1,54 @@
+{"time":"2025-11-15T15:35:20.841832087+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:35:21.09275925+11:00","level":"INFO","msg":"stream: created new stream","id":"fz86ydr9"}
+{"time":"2025-11-15T15:35:21.092867476+11:00","level":"INFO","msg":"stream: started","id":"fz86ydr9"}
+{"time":"2025-11-15T15:35:21.092917251+11:00","level":"INFO","msg":"handler: started","stream_id":"fz86ydr9"}
+{"time":"2025-11-15T15:35:21.092933051+11:00","level":"INFO","msg":"writer: started","stream_id":"fz86ydr9"}
+{"time":"2025-11-15T15:35:21.092951486+11:00","level":"INFO","msg":"sender: started","stream_id":"fz86ydr9"}
+{"time":"2025-11-15T15:35:51.45921713+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:36:06.458792806+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:36:21.458999927+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:36:36.459025528+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:36:51.459743634+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:37:06.459617721+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:37:21.459298719+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:37:36.459432477+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:37:51.459243403+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:38:06.459613027+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:38:21.459544478+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:38:36.459236571+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:38:51.458935918+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:06.459077662+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:21.459607487+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:36.459534839+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:51.459578287+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:06.45921141+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:21.45936961+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:36.458986794+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:51.459557102+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:06.459112378+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:21.459125155+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:36.459475896+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:51.458909938+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:06.459557284+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:21.459683871+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:36.458799259+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:51.459334016+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:06.458791182+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:21.459652647+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:36.459304862+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:51.459009823+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:06.459466851+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:21.459200976+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:36.458789053+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:51.459801504+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:06.459560092+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:21.459741772+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:36.459108319+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.18263468+11:00","level":"INFO","msg":"stream: closing","id":"fz86ydr9"}
+{"time":"2025-11-15T15:45:52.016522353+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.292797578+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/fz86ydr9/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:54.923524356+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/fz86ydr9/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:00.074268915+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/fz86ydr9/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:09.483582558+11:00","level":"INFO","msg":"handler: closed","stream_id":"fz86ydr9"}
+{"time":"2025-11-15T15:46:09.483617234+11:00","level":"INFO","msg":"sender: closed","stream_id":"fz86ydr9"}
+{"time":"2025-11-15T15:46:09.483623807+11:00","level":"INFO","msg":"stream: closed","id":"fz86ydr9"}

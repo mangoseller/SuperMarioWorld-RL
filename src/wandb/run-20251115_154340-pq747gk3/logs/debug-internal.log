@@ -1,0 +1,18 @@
+{"time":"2025-11-15T15:43:40.450325386+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:43:40.703326625+11:00","level":"INFO","msg":"stream: created new stream","id":"pq747gk3"}
+{"time":"2025-11-15T15:43:40.70335003+11:00","level":"INFO","msg":"handler: started","stream_id":"pq747gk3"}
+{"time":"2025-11-15T15:43:40.703396518+11:00","level":"INFO","msg":"stream: started","id":"pq747gk3"}
+{"time":"2025-11-15T15:43:40.703402159+11:00","level":"INFO","msg":"writer: started","stream_id":"pq747gk3"}
+{"time":"2025-11-15T15:43:40.703408822+11:00","level":"INFO","msg":"sender: started","stream_id":"pq747gk3"}
+{"time":"2025-11-15T15:44:11.093294819+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:26.093212557+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:41.092947125+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:56.093771201+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:11.093555111+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:26.092828085+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:41.093142151+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182984196+11:00","level":"INFO","msg":"stream: closing","id":"pq747gk3"}
+{"time":"2025-11-15T15:45:51.816345885+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.102647248+11:00","level":"INFO","msg":"handler: closed","stream_id":"pq747gk3"}
+{"time":"2025-11-15T15:45:52.102687124+11:00","level":"INFO","msg":"sender: closed","stream_id":"pq747gk3"}
+{"time":"2025-11-15T15:45:52.102697794+11:00","level":"INFO","msg":"stream: closed","id":"pq747gk3"}

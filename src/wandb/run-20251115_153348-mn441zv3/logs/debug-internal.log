@@ -1,0 +1,14 @@
+{"time":"2025-11-15T15:33:48.769586978+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:33:49.021307421+11:00","level":"INFO","msg":"stream: created new stream","id":"mn441zv3"}
+{"time":"2025-11-15T15:33:49.021330044+11:00","level":"INFO","msg":"handler: started","stream_id":"mn441zv3"}
+{"time":"2025-11-15T15:33:49.021363197+11:00","level":"INFO","msg":"stream: started","id":"mn441zv3"}
+{"time":"2025-11-15T15:33:49.021368087+11:00","level":"INFO","msg":"writer: started","stream_id":"mn441zv3"}
+{"time":"2025-11-15T15:33:49.021375331+11:00","level":"INFO","msg":"sender: started","stream_id":"mn441zv3"}
+{"time":"2025-11-15T15:45:51.182737686+11:00","level":"INFO","msg":"stream: closing","id":"mn441zv3"}
+{"time":"2025-11-15T15:45:52.11613173+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.364042244+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/mn441zv3/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:54.832385205+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/mn441zv3/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:59.845984366+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/mn441zv3/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:08.64728368+11:00","level":"INFO","msg":"handler: closed","stream_id":"mn441zv3"}
+{"time":"2025-11-15T15:46:08.647355507+11:00","level":"INFO","msg":"sender: closed","stream_id":"mn441zv3"}
+{"time":"2025-11-15T15:46:08.647365015+11:00","level":"INFO","msg":"stream: closed","id":"mn441zv3"}

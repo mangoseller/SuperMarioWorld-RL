@@ -1,0 +1,21 @@
+{"time":"2025-11-15T15:51:16.575039171+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:51:16.824339459+11:00","level":"INFO","msg":"stream: created new stream","id":"4smh3bt6"}
+{"time":"2025-11-15T15:51:16.824370067+11:00","level":"INFO","msg":"handler: started","stream_id":"4smh3bt6"}
+{"time":"2025-11-15T15:51:16.824467042+11:00","level":"INFO","msg":"stream: started","id":"4smh3bt6"}
+{"time":"2025-11-15T15:51:16.82447121+11:00","level":"INFO","msg":"writer: started","stream_id":"4smh3bt6"}
+{"time":"2025-11-15T15:51:16.824478374+11:00","level":"INFO","msg":"sender: started","stream_id":"4smh3bt6"}
+{"time":"2025-11-15T15:51:47.268089967+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:02.26729745+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:17.267333653+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:32.268106821+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:52:47.267711031+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:02.268030227+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:17.267498502+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:32.2676685+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:47.267689784+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:02.267922089+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:09.822426685+11:00","level":"INFO","msg":"stream: closing","id":"4smh3bt6"}
+{"time":"2025-11-15T15:54:10.583721932+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:54:10.910238663+11:00","level":"INFO","msg":"handler: closed","stream_id":"4smh3bt6"}
+{"time":"2025-11-15T15:54:10.910271846+11:00","level":"INFO","msg":"sender: closed","stream_id":"4smh3bt6"}
+{"time":"2025-11-15T15:54:10.910279661+11:00","level":"INFO","msg":"stream: closed","id":"4smh3bt6"}

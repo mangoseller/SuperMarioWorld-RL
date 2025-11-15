@@ -1,0 +1,26 @@
+{"time":"2025-11-15T15:41:51.917181974+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:41:52.170005678+11:00","level":"INFO","msg":"stream: created new stream","id":"nhrxi58u"}
+{"time":"2025-11-15T15:41:52.170052247+11:00","level":"INFO","msg":"handler: started","stream_id":"nhrxi58u"}
+{"time":"2025-11-15T15:41:52.170106049+11:00","level":"INFO","msg":"stream: started","id":"nhrxi58u"}
+{"time":"2025-11-15T15:41:52.170112581+11:00","level":"INFO","msg":"writer: started","stream_id":"nhrxi58u"}
+{"time":"2025-11-15T15:41:52.170119995+11:00","level":"INFO","msg":"sender: started","stream_id":"nhrxi58u"}
+{"time":"2025-11-15T15:42:07.762733496+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:22.762809056+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:37.762688038+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:52.762950978+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:07.762538382+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:22.762942027+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:37.762484975+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:52.763112144+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:07.76291116+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:22.762623707+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:37.76327503+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:52.763104863+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:07.763281138+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:22.763312744+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:37.763040332+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182762313+11:00","level":"INFO","msg":"stream: closing","id":"nhrxi58u"}
+{"time":"2025-11-15T15:45:51.861266385+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.165198013+11:00","level":"INFO","msg":"handler: closed","stream_id":"nhrxi58u"}
+{"time":"2025-11-15T15:45:52.165222499+11:00","level":"INFO","msg":"sender: closed","stream_id":"nhrxi58u"}
+{"time":"2025-11-15T15:45:52.165227569+11:00","level":"INFO","msg":"stream: closed","id":"nhrxi58u"}

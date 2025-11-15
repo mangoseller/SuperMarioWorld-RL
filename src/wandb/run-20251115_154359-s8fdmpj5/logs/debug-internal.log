@@ -1,0 +1,20 @@
+{"time":"2025-11-15T15:43:59.126354198+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:43:59.37911142+11:00","level":"INFO","msg":"stream: created new stream","id":"s8fdmpj5"}
+{"time":"2025-11-15T15:43:59.379152979+11:00","level":"INFO","msg":"handler: started","stream_id":"s8fdmpj5"}
+{"time":"2025-11-15T15:43:59.379222501+11:00","level":"INFO","msg":"stream: started","id":"s8fdmpj5"}
+{"time":"2025-11-15T15:43:59.379227611+11:00","level":"INFO","msg":"writer: started","stream_id":"s8fdmpj5"}
+{"time":"2025-11-15T15:43:59.379234294+11:00","level":"INFO","msg":"sender: started","stream_id":"s8fdmpj5"}
+{"time":"2025-11-15T15:44:29.736961549+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:44.736731954+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:59.736913055+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:14.736973931+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:29.73724207+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:44.737205951+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182553896+11:00","level":"INFO","msg":"stream: closing","id":"s8fdmpj5"}
+{"time":"2025-11-15T15:45:52.025674827+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.30391861+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/s8fdmpj5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:54.744146425+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/s8fdmpj5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:59.613411733+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/s8fdmpj5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:09.839519451+11:00","level":"INFO","msg":"handler: closed","stream_id":"s8fdmpj5"}
+{"time":"2025-11-15T15:46:09.83957142+11:00","level":"INFO","msg":"sender: closed","stream_id":"s8fdmpj5"}
+{"time":"2025-11-15T15:46:09.839579264+11:00","level":"INFO","msg":"stream: closed","id":"s8fdmpj5"}

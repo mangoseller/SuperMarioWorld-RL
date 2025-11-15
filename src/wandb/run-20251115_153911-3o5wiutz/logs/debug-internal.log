@@ -1,0 +1,37 @@
+{"time":"2025-11-15T15:39:11.896729708+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:39:12.142941217+11:00","level":"INFO","msg":"stream: created new stream","id":"3o5wiutz"}
+{"time":"2025-11-15T15:39:12.142985371+11:00","level":"INFO","msg":"handler: started","stream_id":"3o5wiutz"}
+{"time":"2025-11-15T15:39:12.143063801+11:00","level":"INFO","msg":"stream: started","id":"3o5wiutz"}
+{"time":"2025-11-15T15:39:12.143077898+11:00","level":"INFO","msg":"writer: started","stream_id":"3o5wiutz"}
+{"time":"2025-11-15T15:39:12.143088127+11:00","level":"INFO","msg":"sender: started","stream_id":"3o5wiutz"}
+{"time":"2025-11-15T15:39:27.600042784+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:42.600530388+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:39:57.60011064+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:12.60013727+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:27.600175601+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:42.600393132+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:57.599741696+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:12.599869447+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:27.600616238+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:42.600380941+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:57.600241698+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:12.599580231+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:27.60051081+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:42.59998739+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:57.599832469+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:12.599742062+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:27.600204956+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:42.60005073+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:57.600082453+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:12.599990185+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:27.600268139+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:42.599699631+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:57.600289333+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:12.600095937+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:27.599671799+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:42.599691788+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182705605+11:00","level":"INFO","msg":"stream: closing","id":"3o5wiutz"}
+{"time":"2025-11-15T15:45:51.902126174+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.1946113+11:00","level":"INFO","msg":"handler: closed","stream_id":"3o5wiutz"}
+{"time":"2025-11-15T15:45:52.194639563+11:00","level":"INFO","msg":"sender: closed","stream_id":"3o5wiutz"}
+{"time":"2025-11-15T15:45:52.194645525+11:00","level":"INFO","msg":"stream: closed","id":"3o5wiutz"}

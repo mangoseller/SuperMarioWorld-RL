@@ -1,0 +1,99 @@
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_setup.py:_flush():80] Current SDK version is 0.23.0
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_setup.py:_flush():80] Configure stats pid to 64176
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_setup.py:_flush():80] Loading settings from /home/sam/.config/wandb/settings
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_setup.py:_flush():80] Loading settings from /home/sam/Documents/marioRL_3.10/src/wandb/settings
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_init.py:setup_run_log_directory():713] Logging user logs to /home/sam/Documents/marioRL_3.10/src/wandb/run-20251115_155055-70budm80/logs/debug.log
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_init.py:setup_run_log_directory():714] Logging internal logs to /home/sam/Documents/marioRL_3.10/src/wandb/run-20251115_155055-70budm80/logs/debug-internal.log
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_init.py:init():840] calling init triggers
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_init.py:init():845] wandb.init called with sweep_config: {}
+config: {'learning_rate': 0.0001, 'gamma': 0.99, 'lambda': 0.95, 'epsilon': 1e-08, 'clip_eps': 0.2, 'c1': 0.5, 'c2': 0.01, 'architecture': 'ImpalaSmall', 'epochs': 4, 'buffer_size': 50, 'minibatch_size': 64, '_wandb': {}}
+2025-11-15 15:50:55,062 INFO    MainThread:64176 [wandb_init.py:init():888] starting backend
+2025-11-15 15:50:55,064 INFO    MainThread:64176 [wandb_init.py:init():891] sending inform_init request
+2025-11-15 15:50:55,072 INFO    MainThread:64176 [wandb_init.py:init():899] backend started and connected
+2025-11-15 15:50:55,080 INFO    MainThread:64176 [wandb_init.py:init():969] updated telemetry
+2025-11-15 15:50:55,098 INFO    MainThread:64176 [wandb_init.py:init():993] communicating run to backend with 90.0 second timeout
+2025-11-15 15:50:55,947 INFO    MainThread:64176 [wandb_init.py:init():1040] starting run threads in backend
+2025-11-15 15:50:55,982 INFO    MainThread:64176 [wandb_run.py:_console_start():2504] atexit reg
+2025-11-15 15:50:55,982 INFO    MainThread:64176 [wandb_run.py:_redirect():2352] redirect: wrap_raw
+2025-11-15 15:50:55,982 INFO    MainThread:64176 [wandb_run.py:_redirect():2421] Wrapping output streams.
+2025-11-15 15:50:55,982 INFO    MainThread:64176 [wandb_run.py:_redirect():2444] Redirects installed.
+2025-11-15 15:50:55,983 INFO    MainThread:64176 [wandb_init.py:init():1080] run started, returning control to user process
+2025-11-15 15:54:09,823 ERROR   wandb-AsyncioManager-main:64176 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 38, in publish
+    await self._send_server_request(request)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 64, in _send_server_request
+    await self._writer.drain()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 371, in drain
+    await self._protocol._drain_helper()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 167, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost
+2025-11-15 15:54:09,824 ERROR   wandb-AsyncioManager-main:64176 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 38, in publish
+    await self._send_server_request(request)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 64, in _send_server_request
+    await self._writer.drain()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 371, in drain
+    await self._protocol._drain_helper()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 167, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost
+2025-11-15 15:54:09,824 ERROR   wandb-AsyncioManager-main:64176 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 38, in publish
+    await self._send_server_request(request)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 64, in _send_server_request
+    await self._writer.drain()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 371, in drain
+    await self._protocol._drain_helper()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 167, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost
+2025-11-15 15:54:09,824 ERROR   wandb-AsyncioManager-main:64176 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 38, in publish
+    await self._send_server_request(request)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 64, in _send_server_request
+    await self._writer.drain()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 371, in drain
+    await self._protocol._drain_helper()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 167, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost
+2025-11-15 15:54:09,824 ERROR   wandb-AsyncioManager-main:64176 [asyncio_manager.py:fn_wrap_exceptions():183] Uncaught exception in run_soon callback.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 181, in fn_wrap_exceptions
+    await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 38, in publish
+    await self._send_server_request(request)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 64, in _send_server_request
+    await self._writer.drain()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 371, in drain
+    await self._protocol._drain_helper()
+  File "/usr/lib/python3.10/asyncio/streams.py", line 167, in _drain_helper
+    raise ConnectionResetError('Connection lost')
+ConnectionResetError: Connection lost
+2025-11-15 15:54:09,824 ERROR   wandb-AsyncioManager-main:64176 [service_client.py:_forward_responses():77] Error reading server response.
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 73, in _forward_responses
+    while response := await self._read_server_response():
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/service/service_client.py", line 87, in _read_server_response
+    header = await self._reader.readexactly(_HEADER_BYTE_INT_LEN)
+  File "/usr/lib/python3.10/asyncio/streams.py", line 708, in readexactly
+    await self._wait_for_data('readexactly')
+  File "/usr/lib/python3.10/asyncio/streams.py", line 501, in _wait_for_data
+    await self._waiter
+  File "/usr/lib/python3.10/asyncio/selector_events.py", line 924, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe

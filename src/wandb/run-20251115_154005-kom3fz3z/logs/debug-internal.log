@@ -1,0 +1,34 @@
+{"time":"2025-11-15T15:40:05.196473517+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:40:05.443965336+11:00","level":"INFO","msg":"stream: created new stream","id":"kom3fz3z"}
+{"time":"2025-11-15T15:40:05.444010191+11:00","level":"INFO","msg":"handler: started","stream_id":"kom3fz3z"}
+{"time":"2025-11-15T15:40:05.444090364+11:00","level":"INFO","msg":"stream: started","id":"kom3fz3z"}
+{"time":"2025-11-15T15:40:05.444099051+11:00","level":"INFO","msg":"writer: started","stream_id":"kom3fz3z"}
+{"time":"2025-11-15T15:40:05.444108629+11:00","level":"INFO","msg":"sender: started","stream_id":"kom3fz3z"}
+{"time":"2025-11-15T15:40:20.851157244+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:35.851778345+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:50.851960601+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:05.852088623+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:20.851294638+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:35.851927492+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:50.852009369+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:05.85186296+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:20.851504461+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:35.8515425+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:50.851818228+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:05.851699245+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:20.85150807+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:35.851457315+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:50.8516927+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:05.851412347+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:20.851680173+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:35.851375127+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:50.852004161+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:05.851995276+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:20.851517523+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:35.851545963+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:50.852092892+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182951223+11:00","level":"INFO","msg":"stream: closing","id":"kom3fz3z"}
+{"time":"2025-11-15T15:45:51.932527433+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.258858123+11:00","level":"INFO","msg":"handler: closed","stream_id":"kom3fz3z"}
+{"time":"2025-11-15T15:45:52.258889533+11:00","level":"INFO","msg":"sender: closed","stream_id":"kom3fz3z"}
+{"time":"2025-11-15T15:45:52.258895555+11:00","level":"INFO","msg":"stream: closed","id":"kom3fz3z"}

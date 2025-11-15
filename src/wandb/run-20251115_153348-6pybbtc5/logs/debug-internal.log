@@ -1,0 +1,14 @@
+{"time":"2025-11-15T15:33:48.723845901+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:33:48.975301721+11:00","level":"INFO","msg":"stream: created new stream","id":"6pybbtc5"}
+{"time":"2025-11-15T15:33:48.975331477+11:00","level":"INFO","msg":"handler: started","stream_id":"6pybbtc5"}
+{"time":"2025-11-15T15:33:48.975405638+11:00","level":"INFO","msg":"stream: started","id":"6pybbtc5"}
+{"time":"2025-11-15T15:33:48.975410167+11:00","level":"INFO","msg":"writer: started","stream_id":"6pybbtc5"}
+{"time":"2025-11-15T15:33:48.975420767+11:00","level":"INFO","msg":"sender: started","stream_id":"6pybbtc5"}
+{"time":"2025-11-15T15:45:51.182433467+11:00","level":"INFO","msg":"stream: closing","id":"6pybbtc5"}
+{"time":"2025-11-15T15:45:52.104910607+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.354499817+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/6pybbtc5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:54.796962096+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/6pybbtc5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:59.509685939+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/6pybbtc5/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:07.94407513+11:00","level":"INFO","msg":"handler: closed","stream_id":"6pybbtc5"}
+{"time":"2025-11-15T15:46:07.944123412+11:00","level":"INFO","msg":"sender: closed","stream_id":"6pybbtc5"}
+{"time":"2025-11-15T15:46:07.944130376+11:00","level":"INFO","msg":"stream: closed","id":"6pybbtc5"}

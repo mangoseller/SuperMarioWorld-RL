@@ -1,5 +1,6 @@
 import torch as t 
 from torch.distributions import Categorical
+import numpy as np
 
 class PPO:
     def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01):
@@ -146,9 +147,10 @@ class PPO:
                 # Clip grad norms to prevent exploding gradients
                 t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
-        # print(f"Average loss: {np.mean([loss.item() for loss in total_losses])}")
+        
+        return np.mean([loss.item() for loss in total_losses])
 
-        return
+        
 
 
         

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 107, in <module>
+    eval_metrics = eval_parallel_safe(policy, num_episodes=1, record_dir='evals')
+  File "/home/sam/Documents/marioRL_3.10/src/environment.py", line 158, in eval_parallel_safe
+    process.join()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 43, in wait
+    return self.poll(os.WNOHANG if timeout == 0.0 else 0)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 27, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt

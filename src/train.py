@@ -19,7 +19,7 @@ import gc
 import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', choices=['train', 'testing'], default='test')
+parser.add_argument('--config', choices=['train', 'test'], default='test')
 args=parser.parse_args()
 config = TRAINING_CONFIG if args.config == 'train' else TESTING_CONFIG
 run = config.setup_wandb()
@@ -101,11 +101,20 @@ if __name__ == "__main__":
 
         # Evaluate with agent taking optimal actions as per current policy
         if total_env_steps - last_eval_steps >= config.eval_freq:
+            timestamp = int(time.time())
+            eval_dir = f'evals/eval_step_{total_env_steps}_time_{timestamp}'
+
             eval_metrics = eval_parallel_safe(policy, num_episodes=1, record_dir='evals')
             eval_metrics["total_env_steps"] = total_env_steps
             if config.USE_WANDB:
                 wandb.log(eval_metrics)
-
+                vids = wandb.Artifact(
+                    f"eval_videos_step_{total_env_steps}", 
+                        type="eval_videos"
+                )
+                vids.add_dir(eval_dir)  
+                run.log_artifact(vids)
+                
             last_eval_steps = total_env_steps
 
         state = next_state
@@ -113,12 +122,13 @@ if __name__ == "__main__":
 
         # Update PPO when buffer is full
         if buffer.idx == buffer.capacity:
-            policy.update(buffer, next_state=state)
+            mean_loss = policy.update(buffer, next_state=state)
             num_updates += 1
             # Log metrics
             if len(episode_rewards) > 0:
                 if config.USE_WANDB:
                     wandb.log({
+                        "train/loss": mean_loss,
                         "train/mean_reward": np.mean(episode_rewards),
                         "train/mean_length": np.mean(episode_lengths),
                         "train/num_episodes": len(episode_rewards),
@@ -131,6 +141,7 @@ if __name__ == "__main__":
 
             # Save model at Checkpoints
             if step - last_checkpoint >= config.checkpoint_freq:
+
                 model_path = f"ImpalaSmall{episode_num}.pt"
                 t.save(agent.state_dict(), model_path)
                 if config.USE_WANDB:
@@ -138,11 +149,13 @@ if __name__ == "__main__":
                     artifact.add_file(model_path)
                     run.log_artifact(artifact)
                 last_checkpoint = step
+                print("Check WANDB for test progress.")
+                exit(0)
 
     if config.USE_WANDB:
         wandb.finish()
     else:
-        print("Test complete without incident.")
+        print("Test completed without incident.")
 
 
 

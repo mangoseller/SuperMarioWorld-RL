@@ -1,0 +1,14 @@
+{"time":"2025-11-15T15:53:07.751298825+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:53:08.005495383+11:00","level":"INFO","msg":"stream: created new stream","id":"rqm5jtkt"}
+{"time":"2025-11-15T15:53:08.005527945+11:00","level":"INFO","msg":"handler: started","stream_id":"rqm5jtkt"}
+{"time":"2025-11-15T15:53:08.005601785+11:00","level":"INFO","msg":"stream: started","id":"rqm5jtkt"}
+{"time":"2025-11-15T15:53:08.005606154+11:00","level":"INFO","msg":"writer: started","stream_id":"rqm5jtkt"}
+{"time":"2025-11-15T15:53:08.005616002+11:00","level":"INFO","msg":"sender: started","stream_id":"rqm5jtkt"}
+{"time":"2025-11-15T15:53:38.453742169+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:53:53.454385132+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:08.454135869+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:54:09.822577342+11:00","level":"INFO","msg":"stream: closing","id":"rqm5jtkt"}
+{"time":"2025-11-15T15:54:10.439118812+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:54:10.772677167+11:00","level":"INFO","msg":"handler: closed","stream_id":"rqm5jtkt"}
+{"time":"2025-11-15T15:54:10.772719056+11:00","level":"INFO","msg":"sender: closed","stream_id":"rqm5jtkt"}
+{"time":"2025-11-15T15:54:10.772729446+11:00","level":"INFO","msg":"stream: closed","id":"rqm5jtkt"}

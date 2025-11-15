@@ -1,0 +1,36 @@
+{"time":"2025-11-15T15:39:29.705525916+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:39:29.955413061+11:00","level":"INFO","msg":"stream: created new stream","id":"o8qq6c31"}
+{"time":"2025-11-15T15:39:29.955451915+11:00","level":"INFO","msg":"handler: started","stream_id":"o8qq6c31"}
+{"time":"2025-11-15T15:39:29.955539782+11:00","level":"INFO","msg":"stream: started","id":"o8qq6c31"}
+{"time":"2025-11-15T15:39:29.955550342+11:00","level":"INFO","msg":"writer: started","stream_id":"o8qq6c31"}
+{"time":"2025-11-15T15:39:29.955563788+11:00","level":"INFO","msg":"sender: started","stream_id":"o8qq6c31"}
+{"time":"2025-11-15T15:39:45.416252226+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:00.415661274+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:15.416038723+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:30.415557528+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:40:45.416333204+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:00.4161591+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:15.416110603+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:30.415328418+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:41:45.41632855+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:00.416140351+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:15.416106577+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:30.415893088+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:42:45.415817687+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:00.416139434+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:15.416062343+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:30.415786597+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:43:45.415694634+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:00.415440896+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:15.415954815+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:30.416238683+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:44:45.415299453+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:00.416341589+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:15.416307381+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:30.416213337+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:45.415682993+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182911738+11:00","level":"INFO","msg":"stream: closing","id":"o8qq6c31"}
+{"time":"2025-11-15T15:45:51.920532527+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.264823541+11:00","level":"INFO","msg":"handler: closed","stream_id":"o8qq6c31"}
+{"time":"2025-11-15T15:45:52.264862084+11:00","level":"INFO","msg":"sender: closed","stream_id":"o8qq6c31"}
+{"time":"2025-11-15T15:45:52.264869318+11:00","level":"INFO","msg":"stream: closed","id":"o8qq6c31"}

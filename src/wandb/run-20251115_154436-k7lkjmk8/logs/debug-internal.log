@@ -1,0 +1,17 @@
+{"time":"2025-11-15T15:44:36.951357843+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-15T15:44:37.199651453+11:00","level":"INFO","msg":"stream: created new stream","id":"k7lkjmk8"}
+{"time":"2025-11-15T15:44:37.19972299+11:00","level":"INFO","msg":"stream: started","id":"k7lkjmk8"}
+{"time":"2025-11-15T15:44:37.199755161+11:00","level":"INFO","msg":"handler: started","stream_id":"k7lkjmk8"}
+{"time":"2025-11-15T15:44:37.199760611+11:00","level":"INFO","msg":"writer: started","stream_id":"k7lkjmk8"}
+{"time":"2025-11-15T15:44:37.199761032+11:00","level":"INFO","msg":"sender: started","stream_id":"k7lkjmk8"}
+{"time":"2025-11-15T15:45:07.61455519+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:22.614738005+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:37.614456336+11:00","level":"ERROR","msg":"monitor: error sampling metrics: process does not exist"}
+{"time":"2025-11-15T15:45:51.182577191+11:00","level":"INFO","msg":"stream: closing","id":"k7lkjmk8"}
+{"time":"2025-11-15T15:45:52.024215279+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-15T15:45:52.299699027+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/k7lkjmk8/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:54.598421272+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/k7lkjmk8/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:45:59.738067142+11:00","level":"INFO","msg":"api: retrying HTTP error","status":429,"url":"https://api.wandb.ai/files/samuelparson122-unaffiliated/marioRL/k7lkjmk8/file_stream","body":"{\"error\":\"rate limit exceeded\"}"}
+{"time":"2025-11-15T15:46:09.521410956+11:00","level":"INFO","msg":"handler: closed","stream_id":"k7lkjmk8"}
+{"time":"2025-11-15T15:46:09.521453387+11:00","level":"INFO","msg":"sender: closed","stream_id":"k7lkjmk8"}
+{"time":"2025-11-15T15:46:09.521461522+11:00","level":"INFO","msg":"stream: closed","id":"k7lkjmk8"}
