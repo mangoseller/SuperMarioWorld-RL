@@ -104,7 +104,7 @@ if __name__ == "__main__":
             timestamp = int(time.time())
             eval_dir = f'evals/eval_step_{total_env_steps}_time_{timestamp}'
 
-            eval_metrics = eval_parallel_safe(policy, num_episodes=1, record_dir='evals')
+            eval_metrics = eval_parallel_safe(policy, num_episodes=1, record_dir=eval_dir)
             eval_metrics["total_env_steps"] = total_env_steps
             if config.USE_WANDB:
                 wandb.log(eval_metrics)

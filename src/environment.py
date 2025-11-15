@@ -151,8 +151,10 @@ def eval_parallel_safe(policy, num_episodes=3, record_dir='evals'):
 # Run evaluate in a sub-process 
 
     result_queue = Queue()
+    # Move model weights to cpu
+    cpu_state_dicts = {k: v.cpu() for k, v in policy.model.state_dict().items()}
     process = Process(target=_run_eval_, args=(
-        policy.model.state_dict(), num_episodes, record_dir, result_queue
+        cpu_state_dicts, num_episodes, record_dir, result_queue
     ))
     process.start()
     process.join()
