@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import os
 import wandb
+import torch as t
 
 @dataclass
 class TrainingConfig: 
@@ -44,7 +45,6 @@ class TrainingConfig:
         }
 
     def setup_wandb(self):
-
         if not self.USE_WANDB:
             return
 
@@ -57,13 +57,20 @@ class TrainingConfig:
             config=self.to_wandb_config()
         )
 
+def get_torch_compatible_actions(actions, num_envs, num_actions=13):
+# Convert integer actions into one-hot format for torchrl
+    onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
+    if num_envs == 1:
+        return onehot_actions.squeeze(0)
+    return onehot_actions
+
 TRAINING_CONFIG = TrainingConfig(
     num_envs=8,
     num_training_steps=int(1e6),
     buffer_size=4096,
     eval_freq=250_000,
     checkpoint_freq=200_000,
-    USE_WANDB=True,
+    USE_WANDB=False,
     show_progress=True
 )
 

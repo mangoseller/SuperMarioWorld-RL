@@ -28,10 +28,11 @@ from ppo import PPO
 from buffer import RolloutBuffer
 from environment import eval_parallel_safe, make_training_env
 import argparse
-from training_utils import TRAINING_CONFIG, TESTING_CONFIG
+from training_utils import TRAINING_CONFIG, TESTING_CONFIG, get_torch_compatible_actions
 import time
 from tqdm import tqdm 
 import os
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', choices=['train', 'test'], default='test')
 args=parser.parse_args()
@@ -125,7 +126,6 @@ def save_checkpoint(agent, tracking, config, run, step):
     tracking['last_checkpoint'] = step
 
 def train(model, num_eval_episodes=2):
-
     run = config.setup_wandb()
     device = "cuda" if t.cuda.is_available() else "cpu"
     agent = model().to(device)
@@ -136,21 +136,11 @@ def train(model, num_eval_episodes=2):
     else:
         print("Training on CPU")
     tracking = init_tracking(config)
-    
     pbar = tqdm(range(config.num_training_steps), disable=not config.show_progress)
+    
     for step in pbar:
-
-
-
-
         actions, log_probs, values = policy.action_selection(state)
-        action_onehot = t.nn.functional.one_hot(actions, num_classes=13).float()
-        environment["action"] = action_onehot.squeeze(0)
-
-        #print(f"Generated actions: {actions}, shape: {actions.shape}, dtype: {actions.dtype}")
-        #  environment["action"] = actions
-
-        #print(f"Action in environment dict: {environment['action']}")
+        environment["action"] = get_torch_compatible_actions(actions, config.num_envs)
         environment = env.step(environment)
         next_state = environment["next"]["pixels"]
 
@@ -160,7 +150,7 @@ def train(model, num_eval_episodes=2):
         rewards = environment["next"]["reward"]
         dones = environment["next"]["done"]
 
-        if config.num_envs == 1:
+        if config.num_envs == 1: # Single env shape correction
             if rewards.dim() == 0:
                 rewards = rewards.unsqueeze(0)
             if dones.dim() == 0:
@@ -188,17 +178,16 @@ def train(model, num_eval_episodes=2):
                 'mean_reward': f"{np.mean(tracking['completed_rewards']):.2f}",
                 'updates': tracking['num_updates']
             })
-
-        
+    
         # Evaluation
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
             run_evaluation(model, policy, tracking, config, run, num_eval_episodes)
-        
-       # if dones.item(): SingleENV logic
-        #     environment = env.reset()
-        #     state = environment["pixels"].unsqueeze(0)
-
-        state = next_state
+    
+        if dones.item(): # TODO: Separate training with 1 env and multienvs into different functions
+            environment = env.reset() # Handle single env
+            state = environment["pixels"].unsqueeze(0)
+        else:
+            state = next_state
         
         # PPO update when buffer is full
         if buffer.idx == buffer.capacity:
