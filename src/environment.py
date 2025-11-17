@@ -36,14 +36,14 @@ class Discretizer(gym.ActionWrapper):
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action)) 
     
     def action(self, action):
-        print(f"Discretizer received action: {action}, type: {type(action)}")
+        #  print(f"Discretizer received action: {action}, type: {type(action)}")
         result = self._decode_discrete_action[action].copy()
-        print(f"Discretizer returning: {result}")
+        # print(f"Discretizer returning: {result}")
         return result
     #  return self._decode_discrete_action[action].copy() # Convert integer action into expected boolean arr of button presses
 
 class HandleMarioLifeLoss(gym.Wrapper):
-# Frame skip that stops on life loss to allow for episode termination on death
+    # Frame skip that stops on life loss to allow for episode termination on death
     def __init__(self, env, skip=4):
         super().__init__(env)
         self.skip = skip
@@ -51,6 +51,8 @@ class HandleMarioLifeLoss(gym.Wrapper):
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
+        # print(self.env.env.unwrapped.data['7E0DBE'])
+        # print(self.env.env.get_ram()[00007'])
         self.prev_lives = info.get('lives', None)
         return obs, info
 
@@ -60,12 +62,15 @@ class HandleMarioLifeLoss(gym.Wrapper):
 
         for _ in range(self.skip):
             obs, reward, term, trunc, info = self.env.step(action)
+
             total_reward += reward
             current_lives = info.get('lives', None)
 
             # Check for life loss
             if self.prev_lives is not None and current_lives is not None \
             and current_lives < self.prev_lives:
+                self.prev_lives = current_lives
+
                 terminated = True
                 break # Stop frame skipping
 
@@ -80,7 +85,7 @@ class HandleMarioLifeLoss(gym.Wrapper):
 def prepare_env(env, skip=4, record=False, record_dir=None):
     # wrapped_env = DebugWrapper(env)
     wrapped_env = Discretizer(env, MARIO_ACTIONS)
-    # wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=4) # Frame skip
+    wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=skip) # Frame skip
     if record:
         wrapped_env = RecordVideo(
             wrapped_env,
@@ -91,8 +96,8 @@ def prepare_env(env, skip=4, record=False, record_dir=None):
 
     wrapped_env = GymWrapper(wrapped_env)
 
-    print(f"GymWrapper action_spec: {wrapped_env.action_spec}")
-    print(f"GymWrapper action_space: {wrapped_env._env.action_space}")
+    #print(f"GymWrapper action_spec: {wrapped_env.action_spec}")
+    #print(f"GymWrapper action_space: {wrapped_env._env.action_space}")
     
     return TransformedEnv(wrapped_env, Compose([
     ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors

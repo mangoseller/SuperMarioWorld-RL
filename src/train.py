@@ -147,10 +147,10 @@ def train(model, num_eval_episodes=2):
         action_onehot = t.nn.functional.one_hot(actions, num_classes=13).float()
         environment["action"] = action_onehot.squeeze(0)
 
-        print(f"Generated actions: {actions}, shape: {actions.shape}, dtype: {actions.dtype}")
+        #print(f"Generated actions: {actions}, shape: {actions.shape}, dtype: {actions.dtype}")
         #  environment["action"] = actions
 
-        print(f"Action in environment dict: {environment['action']}")
+        #print(f"Action in environment dict: {environment['action']}")
         environment = env.step(environment)
         next_state = environment["next"]["pixels"]
 
@@ -194,6 +194,10 @@ def train(model, num_eval_episodes=2):
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
             run_evaluation(model, policy, tracking, config, run, num_eval_episodes)
         
+       # if dones.item(): SingleENV logic
+        #     environment = env.reset()
+        #     state = environment["pixels"].unsqueeze(0)
+
         state = next_state
         
         # PPO update when buffer is full
