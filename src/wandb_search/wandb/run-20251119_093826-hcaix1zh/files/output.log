@@ -1,0 +1,2 @@
+Training on cpu
+  1%|▉                                                                                                                                                    | 6284/1000000 [01:02<2:12:35, 124.91it/s, episodes=40, mean_reward=0.00, updates=9][34m[1mwandb[0m: Ctrl + C detected. Stopping sweep.

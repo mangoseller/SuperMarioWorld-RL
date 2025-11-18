@@ -1,0 +1,27 @@
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_setup.py:_flush():80] Current SDK version is 0.23.0
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_setup.py:_flush():80] Configure stats pid to 29638
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_setup.py:_flush():80] Loading settings from /home/sam/.config/wandb/settings
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_setup.py:_flush():80] Loading settings from /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/settings
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_init.py:setup_run_log_directory():713] Logging user logs to /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/run-20251119_093743-joeeb75z/logs/debug.log
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_init.py:setup_run_log_directory():714] Logging internal logs to /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/run-20251119_093743-joeeb75z/logs/debug-internal.log
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():840] calling init triggers
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():845] wandb.init called with sweep_config: {'c2': 0.09145921086669533, 'learning_rate': 0.0003819335503008875}
+config: {'_wandb': {}}
+2025-11-19 09:37:43,963 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():888] starting backend
+2025-11-19 09:37:43,964 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():891] sending inform_init request
+2025-11-19 09:37:43,964 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():899] backend started and connected
+2025-11-19 09:37:43,965 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_config_callback():1385] config_cb None None {'c2': 0.09145921086669533, 'learning_rate': 0.0003819335503008875}
+2025-11-19 09:37:43,965 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():969] updated telemetry
+2025-11-19 09:37:43,967 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():993] communicating run to backend with 90.0 second timeout
+2025-11-19 09:37:44,543 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():1040] starting run threads in backend
+2025-11-19 09:37:44,577 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_console_start():2504] atexit reg
+2025-11-19 09:37:44,577 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_redirect():2352] redirect: wrap_raw
+2025-11-19 09:37:44,577 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_redirect():2421] Wrapping output streams.
+2025-11-19 09:37:44,578 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_redirect():2444] Redirects installed.
+2025-11-19 09:37:44,578 INFO    Thread-4 (_run_job):29638 [wandb_init.py:init():1080] run started, returning control to user process
+2025-11-19 09:37:44,687 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_finish():2270] finishing run samuelparson122-unaffiliated/marioRL/joeeb75z
+2025-11-19 09:37:44,687 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_atexit_cleanup():2469] got exitcode: 1
+2025-11-19 09:37:44,687 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_restore():2451] restore
+2025-11-19 09:37:44,687 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_restore():2457] restore done
+2025-11-19 09:37:46,613 INFO    Thread-4 (_run_job):29638 [wandb_run.py:_footer_sync_info():3853] logging synced files

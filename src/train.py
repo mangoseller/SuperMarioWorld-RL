@@ -28,7 +28,7 @@ from ppo import PPO
 from buffer import RolloutBuffer
 from environment import eval_parallel_safe, make_training_env
 import argparse
-from training_utils import TRAINING_CONFIG, TESTING_CONFIG, get_torch_compatible_actions
+from training_utils import TRAINING_CONFIG, TESTING_CONFIG, get_torch_compatible_actions, SWEEPRUN_CONFIG
 import time
 from tqdm import tqdm 
 import os
@@ -211,5 +211,83 @@ def train(model, num_eval_episodes=2):
     else:
         print("Test completed without incident.")
 
+def train_sweep():
+    """Training function for wandb sweeps"""
+    run = wandb.init()
+    
+    # Create config from sweep parameters
+    base_config = SWEEPRUN_CONFIG
+    config = SWEEPRUN_CONFIG.from_wandb(base_config)
+    
+    device = "cuda" if t.cuda.is_available() else "cpu"
+    print(f"Training on {device}")
+    agent = ImpalaSmall().to(device)
+    agent, policy, buffer, env, environment, state = init_training(agent, config, device)
+    
+    tracking = init_tracking(config)
+    pbar = tqdm(range(config.num_training_steps), disable=not config.show_progress)
+    
+    for step in pbar:
+        actions, log_probs, values = policy.action_selection(state)
+        environment["action"] = get_torch_compatible_actions(actions, config.num_envs)
+        environment = env.step(environment)
+        next_state = environment["next"]["pixels"]
+
+        if config.num_envs == 1 and next_state.dim() == 3:
+            next_state = next_state.unsqueeze(0)
+
+        rewards = environment["next"]["reward"]
+        dones = environment["next"]["done"]
+
+        if config.num_envs == 1:
+            if rewards.dim() == 0:
+                rewards = rewards.unsqueeze(0)
+            if dones.dim() == 0:
+                dones = dones.unsqueeze(0)
+        
+        buffer.store(
+            state.cpu().numpy(),
+            rewards.squeeze().cpu().numpy(),
+            actions.cpu().numpy(),
+            log_probs.cpu().numpy(),
+            values.cpu().numpy(),
+            dones.squeeze().cpu().numpy(),
+        )
+        
+        tracking['total_env_steps'] += config.num_envs
+        update_episode_tracking(tracking, config, rewards, dones)
+
+        if config.show_progress and len(tracking['completed_rewards']) > 0:
+            pbar.set_postfix({
+                'episodes': tracking['episode_num'],
+                'mean_reward': f"{np.mean(tracking['completed_rewards']):.2f}",
+                'updates': tracking['num_updates']
+            })
+    
+        # Evaluation
+        if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
+            run_evaluation(ImpalaSmall, policy, tracking, config, run, 2)
+        
+        if config.num_envs == 1:
+            if dones.item():
+                environment = env.reset()
+                state = environment["pixels"].unsqueeze(0)
+        
+        state = next_state
+        
+        if buffer.idx == buffer.capacity:
+            mean_loss = policy.update(buffer, next_state=state)
+            tracking['num_updates'] += 1
+            
+            log_training_metrics(tracking, mean_loss, config, step)
+            tracking['completed_rewards'].clear()
+            tracking['completed_lengths'].clear()
+            
+            buffer.clear()
+            
+            if step - tracking['last_checkpoint'] >= config.checkpoint_freq:
+                save_checkpoint(agent, tracking, config, run, step)
+    
+    wandb.finish()
 if __name__ == "__main__":
     train(ImpalaSmall)

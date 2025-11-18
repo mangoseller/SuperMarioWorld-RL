@@ -1,0 +1,39 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            ehwp6o7hrir8xapsntb0ww4ehsmfq2pd:
+                codePath: src/wandb_search/run_sweep.py
+                codePathLocal: run_sweep.py
+                email: samuelparson122@gmail.com
+                executable: /home/sam/Documents/marioRL_3.10/venv/bin/python
+                git:
+                    commit: 8f73a580440b0e2be6f7bd60e0c2a67cc4e041ec
+                    remote: git@github.com:mangoseller/mario_RL.git
+                host: sam-B650M-GAMING-WIFI
+                os: Linux-6.14.0-35-generic-x86_64-with-glibc2.39
+                program: /home/sam/Documents/marioRL_3.10/src/wandb_search/run_sweep.py
+                python: CPython 3.10.19
+                root: /home/sam/Documents/marioRL_3.10/src/wandb_search
+                startedAt: "2025-11-18T22:36:01.738980Z"
+                writerId: ehwp6o7hrir8xapsntb0ww4ehsmfq2pd
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 105
+            "2":
+                - 1
+                - 105
+            "3":
+                - 2
+                - 14
+            "4": 3.10.19
+            "5": 0.23.0
+            "12": 0.23.0
+            "13": linux-x86_64
+c2:
+    value: 0.043959428209983296
+learning_rate:
+    value: 2.9302422040122696e-05

@@ -1,0 +1,81 @@
+2025-11-19 09:36:01,739 INFO    Thread-4 (_run_job):28990 [wandb_setup.py:_flush():80] Current SDK version is 0.23.0
+2025-11-19 09:36:01,739 INFO    Thread-4 (_run_job):28990 [wandb_setup.py:_flush():80] Configure stats pid to 28990
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_setup.py:_flush():80] Loading settings from /home/sam/.config/wandb/settings
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_setup.py:_flush():80] Loading settings from /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/settings
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_init.py:setup_run_log_directory():713] Logging user logs to /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/run-20251119_093601-4z0bwkv9/logs/debug.log
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_init.py:setup_run_log_directory():714] Logging internal logs to /home/sam/Documents/marioRL_3.10/src/wandb_search/wandb/run-20251119_093601-4z0bwkv9/logs/debug-internal.log
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():840] calling init triggers
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():845] wandb.init called with sweep_config: {'c2': 0.043959428209983296, 'learning_rate': 2.9302422040122696e-05}
+config: {'_wandb': {}}
+2025-11-19 09:36:01,740 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():888] starting backend
+2025-11-19 09:36:01,941 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():891] sending inform_init request
+2025-11-19 09:36:01,942 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():899] backend started and connected
+2025-11-19 09:36:01,942 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_config_callback():1385] config_cb None None {'c2': 0.043959428209983296, 'learning_rate': 2.9302422040122696e-05}
+2025-11-19 09:36:01,942 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():969] updated telemetry
+2025-11-19 09:36:01,945 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():993] communicating run to backend with 90.0 second timeout
+2025-11-19 09:36:02,901 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():1040] starting run threads in backend
+2025-11-19 09:36:02,936 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_console_start():2504] atexit reg
+2025-11-19 09:36:02,936 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_redirect():2352] redirect: wrap_raw
+2025-11-19 09:36:02,936 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_redirect():2421] Wrapping output streams.
+2025-11-19 09:36:02,936 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_redirect():2444] Redirects installed.
+2025-11-19 09:36:02,936 INFO    Thread-4 (_run_job):28990 [wandb_init.py:init():1080] run started, returning control to user process
+2025-11-19 09:36:02,937 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_finish():2270] finishing run samuelparson122-unaffiliated/marioRL/4z0bwkv9
+2025-11-19 09:36:02,937 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_atexit_cleanup():2469] got exitcode: 1
+2025-11-19 09:36:02,937 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_restore():2451] restore
+2025-11-19 09:36:02,937 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_restore():2457] restore done
+2025-11-19 09:36:04,490 INFO    wandb-AsyncioManager-main:28990 [service_client.py:_forward_responses():80] Reached EOF.
+2025-11-19 09:36:04,490 INFO    wandb-AsyncioManager-main:28990 [mailbox.py:close():137] Closing mailbox, abandoning 2 handles.
+2025-11-19 09:36:04,491 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_restore():2451] restore
+2025-11-19 09:36:04,491 INFO    Thread-4 (_run_job):28990 [wandb_run.py:_restore():2457] restore done
+2025-11-19 09:36:04,491 ERROR   Thread-4 (_run_job):28990 [wandb_run.py:_atexit_cleanup():2490] Problem finishing run
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/agents/pyagent.py", line 297, in _run_job
+    self._function()
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 220, in train_sweep
+    config = TrainingConfig.from_wandb(base_config)
+NameError: name 'TrainingConfig' is not defined
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/agents/pyagent.py", line 307, in _run_job
+    raise _JobError(f"Run threw exception: {str(e)}") from e
+wandb.agents.pyagent._JobError: Run threw exception: name 'TrainingConfig' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 2481, in _atexit_cleanup
+    self._on_finish()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 2703, in _on_finish
+    wait_with_progress(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 23, in wait_with_progress
+    return wait_all_with_progress(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 77, in wait_all_with_progress
+    return asyncer.run(progress_loop_with_timeout)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 136, in run
+    return future.result()
+  File "/usr/lib/python3.10/concurrent/futures/_base.py", line 458, in result
+    return self.__get_result()
+  File "/usr/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_manager.py", line 219, in _wrap
+    return await fn()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 72, in progress_loop_with_timeout
+    return await _wait_handles_async(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 95, in _wait_handles_async
+    async with asyncio_compat.open_task_group() as task_group:
+  File "/usr/lib/python3.10/contextlib.py", line 206, in __aexit__
+    await anext(self.gen)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_compat.py", line 240, in open_task_group
+    await task_group._wait_all(race=race, timeout=exit_timeout)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/lib/asyncio_compat.py", line 180, in _wait_all
+    raise exc
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/wait_with_progress.py", line 93, in wait_single
+    results[index] = await handle.wait_async(timeout=timeout)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/mailbox_handle.py", line 133, in wait_async
+    response = await self._handle.wait_async(timeout=timeout)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/sdk/mailbox/response_handle.py", line 99, in wait_async
+    raise HandleAbandonedError()
+wandb.sdk.mailbox.mailbox_handle.HandleAbandonedError

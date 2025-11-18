@@ -1,0 +1,11 @@
+{"time":"2025-11-19T09:47:39.642887947+11:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-19T09:47:40.000264125+11:00","level":"INFO","msg":"stream: created new stream","id":"rcfornfa"}
+{"time":"2025-11-19T09:47:40.000312297+11:00","level":"INFO","msg":"handler: started","stream_id":"rcfornfa"}
+{"time":"2025-11-19T09:47:40.000369796+11:00","level":"INFO","msg":"stream: started","id":"rcfornfa"}
+{"time":"2025-11-19T09:47:40.000381469+11:00","level":"INFO","msg":"writer: started","stream_id":"rcfornfa"}
+{"time":"2025-11-19T09:47:40.000381649+11:00","level":"INFO","msg":"sender: started","stream_id":"rcfornfa"}
+{"time":"2025-11-19T09:48:40.581417686+11:00","level":"INFO","msg":"stream: closing","id":"rcfornfa"}
+{"time":"2025-11-19T09:48:41.353765101+11:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-19T09:48:41.655473608+11:00","level":"INFO","msg":"handler: closed","stream_id":"rcfornfa"}
+{"time":"2025-11-19T09:48:41.65554282+11:00","level":"INFO","msg":"sender: closed","stream_id":"rcfornfa"}
+{"time":"2025-11-19T09:48:41.655550053+11:00","level":"INFO","msg":"stream: closed","id":"rcfornfa"}

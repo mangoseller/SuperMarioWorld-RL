@@ -56,6 +56,13 @@ class TrainingConfig:
             project=self.wandb_project,
             config=self.to_wandb_config()
         )
+    @classmethod
+    def from_wandb(cls, base_config):
+        config_dict = base_config.__dict__.copy()
+        for k, v, in wandb.config.items():
+            if hasattr(base_config, k):
+                config_dict[k] = v
+        return cls(**config_dict)
 
 def get_torch_compatible_actions(actions, num_envs, num_actions=13):
 # Convert integer actions into one-hot format for torchrl
@@ -63,6 +70,17 @@ def get_torch_compatible_actions(actions, num_envs, num_actions=13):
     if num_envs == 1:
         return onehot_actions.squeeze(0)
     return onehot_actions
+
+# Sweep config
+SWEEPRUN_CONFIG = TrainingConfig(
+    num_envs = 6,
+    num_training_steps=5_000_000,
+    buffer_size=2048,
+    eval_freq=500_000,
+    checkpoint_freq=int(1e40),
+    USE_WANDB=True,
+    show_progress=False
+)
 
 TRAINING_CONFIG = TrainingConfig(
     num_envs=8,
@@ -75,11 +93,11 @@ TRAINING_CONFIG = TrainingConfig(
 )
 
 TESTING_CONFIG = TrainingConfig(
-    num_envs=6,
-    num_training_steps=100000,
-    buffer_size=50,
-    eval_freq=200, # 20000
+    num_envs=1,
+    num_training_steps=100000000,
+        buffer_size=4096,
+    eval_freq=20000000000, # 20000
     checkpoint_freq=5000000000,
-    USE_WANDB=True,
+    USE_WANDB=False,
     show_progress=True
 )

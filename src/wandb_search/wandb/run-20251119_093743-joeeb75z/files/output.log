@@ -1,0 +1,27 @@
+Training on cpu
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/agents/pyagent.py", line 297, in _run_job
+    self._function()
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 225, in train_sweep
+    agent, policy, buffer, env, environment, state = init_training(agent, config, device)
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 54, in init_training
+    env = make_training_env(num_envs=config.num_envs)
+  File "/home/sam/Documents/marioRL_3.10/src/environment.py", line 172, in make_training_env
+    return ParallelEnv(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/batched_envs.py", line 137, in __call__
+    return super().__call__(*args, **kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/common.py", line 263, in __call__
+    instance: EnvBase = super().__call__(*args, **kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/batched_envs.py", line 374, in __init__
+    self._get_metadata(create_env_fn, create_env_kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/batched_envs.py", line 506, in _get_metadata
+    meta_data: EnvMetaData = get_env_metadata(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/env_creator.py", line 241, in get_env_metadata
+    env = env_or_creator(**kwargs)
+  File "/home/sam/Documents/marioRL_3.10/src/environment.py", line 175, in <lambda>
+    retro.make(
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/retro/__init__.py", line 64, in make
+    return RetroEnv(game, state, inttype=inttype, **kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/retro/retro_env.py", line 102, in __init__
+    self.em = retro.RetroEmulator(rom_path)
+RuntimeError: Cannot create multiple emulator instances per process, make sure to call env.close() on each environment before creating a new one

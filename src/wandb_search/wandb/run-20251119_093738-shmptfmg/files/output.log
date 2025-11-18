@@ -1,0 +1,46 @@
+Training on cpu
+Traceback (most recent call last):
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/wandb/agents/pyagent.py", line 297, in _run_job
+    self._function()
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 225, in train_sweep
+    agent, policy, buffer, env, environment, state = init_training(agent, config, device)
+  File "/home/sam/Documents/marioRL_3.10/src/train.py", line 55, in init_training
+    environment = env.reset()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/common.py", line 2859, in reset
+    tensordict_reset = self._reset(tensordict, **kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/batched_envs.py", line 68, in decorated_fun
+    self._start_workers()
+  File "/home/sam/Documents/marioRL_3.10/venv/lib/python3.10/site-packages/torchrl/envs/batched_envs.py", line 1507, in _start_workers
+    process.start()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 121, in start
+    self._popen = self._Popen(self)
+  File "/usr/lib/python3.10/multiprocessing/context.py", line 224, in _Popen
+    return _default_context.get_context().Process._Popen(process_obj)
+  File "/usr/lib/python3.10/multiprocessing/context.py", line 288, in _Popen
+    return Popen(process_obj)
+  File "/usr/lib/python3.10/multiprocessing/popen_spawn_posix.py", line 32, in __init__
+    super().__init__(process_obj)
+  File "/usr/lib/python3.10/multiprocessing/popen_fork.py", line 19, in __init__
+    self._launch(process_obj)
+  File "/usr/lib/python3.10/multiprocessing/popen_spawn_posix.py", line 42, in _launch
+    prep_data = spawn.get_preparation_data(process_obj._name)
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 154, in get_preparation_data
+    _check_not_importing_main()
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 134, in _check_not_importing_main
+    raise RuntimeError('''
+RuntimeError:
+        An attempt has been made to start a new process before the
+        current process has finished its bootstrapping phase.
+
+        This probably means that you are not using fork to start your
+        child processes and you have forgotten to use the proper idiom
+        in the main module:
+
+            if __name__ == '__main__':
+                freeze_support()
+                ...
+
+        The "freeze_support()" line can be omitted if the program
+        is not going to be frozen to produce an executable.

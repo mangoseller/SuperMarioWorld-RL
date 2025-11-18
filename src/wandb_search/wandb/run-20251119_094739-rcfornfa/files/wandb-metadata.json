@@ -1,0 +1,28 @@
+{
+  "os": "Linux-6.14.0-35-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.10.19",
+  "startedAt": "2025-11-18T22:47:39.428766Z",
+  "program": "/home/sam/Documents/marioRL_3.10/src/wandb_search/run_sweep.py",
+  "codePath": "src/wandb_search/run_sweep.py",
+  "codePathLocal": "run_sweep.py",
+  "git": {
+    "remote": "git@github.com:mangoseller/mario_RL.git",
+    "commit": "8f73a580440b0e2be6f7bd60e0c2a67cc4e041ec"
+  },
+  "email": "samuelparson122@gmail.com",
+  "root": "/home/sam/Documents/marioRL_3.10/src/wandb_search",
+  "host": "sam-B650M-GAMING-WIFI",
+  "executable": "/home/sam/Documents/marioRL_3.10/venv/bin/python",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "disk": {
+    "/": {
+      "total": "305402470400",
+      "used": "183892058112"
+    }
+  },
+  "memory": {
+    "total": "32703377408"
+  },
+  "writerId": "y0xagbbc572b8wahm84trcilkz0i8nxn"
+}

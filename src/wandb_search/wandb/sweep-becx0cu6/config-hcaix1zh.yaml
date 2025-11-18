@@ -1,0 +1,6 @@
+wandb_version: 1
+
+c2:
+  value: 0.08517969580529092
+learning_rate:
+  value: 0.0006952285435451397

@@ -1,0 +1,39 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            s6xno8q0fufrcq7fom8x6qbs0kq9bqv7:
+                email: samuelparson122@gmail.com
+                executable: /home/sam/Documents/marioRL_3.10/venv/bin/python
+                git:
+                    commit: 8f73a580440b0e2be6f7bd60e0c2a67cc4e041ec
+                    remote: git@github.com:mangoseller/mario_RL.git
+                host: sam-B650M-GAMING-WIFI
+                os: Linux-6.14.0-35-generic-x86_64-with-glibc2.39
+                program: <python with no main file>
+                python: CPython 3.10.19
+                root: /home/sam/Documents/marioRL_3.10/src/wandb_search
+                startedAt: "2025-11-18T22:37:49.659146Z"
+                writerId: s6xno8q0fufrcq7fom8x6qbs0kq9bqv7
+        m: []
+        python_version: 3.10.19
+        t:
+            "1":
+                - 1
+                - 41
+                - 105
+            "2":
+                - 1
+                - 41
+                - 105
+            "3":
+                - 2
+                - 14
+            "4": 3.10.19
+            "5": 0.23.0
+            "12": 0.23.0
+            "13": linux-x86_64
+c2:
+    value: 0.09356712820445667
+learning_rate:
+    value: 7.034685021766279e-05
