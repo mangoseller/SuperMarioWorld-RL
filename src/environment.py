@@ -57,23 +57,21 @@ class HandleMarioLifeLoss(gym.Wrapper):
         self.steps_since_reset += 1
  
         for i in range(self.skip):
-            obs, reward, term, trunc, info = self.env.step(action)
- 
+            obs, reward, term, trunc, info = self.env.step(action) 
             total_reward += reward
-            if i == 0: # If this is the first frame get the life count
-                self.prev_lives = info.get('lives', None)
-            else: # Otherwise get the current life for comparisons
-                current_lives = info.get('lives', None)
- 
-            # Check for life loss (but skip check on first step after reset to avoid race condition)
-            if i > 0 and self.steps_since_reset > 1:  # Only check after first step
-                if self.prev_lives is not None and current_lives is not None \
-                and current_lives < self.prev_lives:
-                    self.prev_lives = current_lives
- 
-                    terminated = True
-                    break # Stop frame skipping
+            current_lives = info.get('lives', None)
 
+            if self.steps_since_reset > 1:
+                if self.prev_lives is not None and current_lives is not None \
+                    and current_lives < self.prev_lives:  
+                        terminated = True
+                        self.prev_lives = current_lives
+                        break # Stop frame skipping
+                else:
+                    if self.prev_lives is None or current_lives is None:
+                        print(f"INFO: Previous Lives: {self.prev_lives}, Current_lives: {current_lives}")
+
+            self.prev_lives = current_lives
         return obs, total_reward, terminated, truncated, info
 
  
@@ -165,7 +163,7 @@ def make_training_env(num_envs=1):
         return prepare_env(
             retro.make(
             'SuperMarioWorld-Snes',
-            state='YoshiIsland2',
+            state='DonutPlains1', # YoshiIsland2
             render_mode='human' # Change to 'rgb_array' when debugging finished
         ))
     else:
@@ -174,7 +172,7 @@ def make_training_env(num_envs=1):
             create_env_fn=lambda: prepare_env(
         retro.make(
         'SuperMarioWorld-Snes',
-        state='YoshiIsland2',
+        state='YoshiIsland1',
         render_mode='rgb_array' # human doesn't work for parallel envs
     ))
 )
