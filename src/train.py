@@ -149,7 +149,8 @@ def train(model, num_eval_episodes=2):
 
         rewards = environment["next"]["reward"]
         dones = environment["next"]["done"]
-
+        trunc = environment["next"].get("truncated", t.zeros_like(dones))
+        terminated = dones | trunc
         if config.num_envs == 1: # Single env shape correction
             if rewards.dim() == 0:
                 rewards = rewards.unsqueeze(0)
@@ -169,7 +170,7 @@ def train(model, num_eval_episodes=2):
         tracking['total_env_steps'] += config.num_envs
 
         # Update episode tracking
-        update_episode_tracking(tracking, config, rewards, dones)
+        update_episode_tracking(tracking, config, rewards, terminated)
 
         # Update progress bar:
         if config.show_progress and len(tracking['completed_rewards']) > 0:
@@ -238,6 +239,8 @@ def train_sweep():
 
         rewards = environment["next"]["reward"]
         dones = environment["next"]["done"]
+        trunc = environment["next"].get("truncated", t.zeros_like(dones))
+        terminated = dones | trunc
 
         if config.num_envs == 1:
             if rewards.dim() == 0:
@@ -255,7 +258,7 @@ def train_sweep():
         )
         
         tracking['total_env_steps'] += config.num_envs
-        update_episode_tracking(tracking, config, rewards, dones)
+        update_episode_tracking(tracking, config, rewards, terminated)
 
         if config.show_progress and len(tracking['completed_rewards']) > 0:
             pbar.set_postfix({
