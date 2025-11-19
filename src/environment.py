@@ -39,7 +39,7 @@ class Discretizer(gym.ActionWrapper):
 
 class HandleMarioLifeLoss(gym.Wrapper):
     # Frame skip that stops on life loss to allow for episode termination on death
-    def __init__(self, env, skip=4):
+    def __init__(self, env, skip=2):
         super().__init__(env)
         self.skip = skip
         self.prev_lives = None       
@@ -76,7 +76,7 @@ class HandleMarioLifeLoss(gym.Wrapper):
 
  
 
-def prepare_env(env, skip=4, record=False, record_dir=None):
+def prepare_env(env, skip=2, record=False, record_dir=None):
     wrapped_env = Discretizer(env, MARIO_ACTIONS)
     wrapped_env = HandleMarioLifeLoss(wrapped_env, skip=skip) # Frame skip
     if record:
@@ -163,7 +163,7 @@ def make_training_env(num_envs=1):
         return prepare_env(
             retro.make(
             'SuperMarioWorld-Snes',
-            state='DonutPlains1', # YoshiIsland2
+            state='YoshiIsland2', # YoshiIsland2
             render_mode='human' # Change to 'rgb_array' when debugging finished
         ))
     else:
@@ -172,7 +172,7 @@ def make_training_env(num_envs=1):
             create_env_fn=lambda: prepare_env(
         retro.make(
         'SuperMarioWorld-Snes',
-        state='YoshiIsland1',
+        state='YoshiIsland2',
         render_mode='rgb_array' # human doesn't work for parallel envs
     ))
 )
@@ -180,17 +180,18 @@ def make_training_env(num_envs=1):
 MARIO_ACTIONS = [
     [],                   # Do nothing
     ['RIGHT'],            # Walk right
-    ['RIGHT', 'B'],       # Run right  
-    ['RIGHT', 'A'],       # Jump right
-    ['RIGHT', 'B', 'A'],  # Run + jump right
+    ['RIGHT', 'Y'],       # Run right  
+    ['RIGHT', 'B'],       # Jump right
+    ['RIGHT', 'Y', 'B'],  # Run + jump right
     ['LEFT'],             # Walk left
-    ['LEFT', 'B'],        # Run left
-    ['LEFT', 'A'],        # Jump left
-    ['LEFT', 'B', 'A'],   # Run + jump left
-    ['A'],                # Jump in place
-    ['Y'],                # Attack
+    ['LEFT', 'Y'],        # Run left
+    ['LEFT', 'B'],        # Jump left
+    ['LEFT', 'Y', 'B'],   # Run + jump left
+    ['B'],                # Jump in place
+    ['X'],                # Attack
     ['DOWN'],             # Duck/enter pipe
     ['UP'],               # Look up/climb
+    ['A'],                # Spin Jump
 ]
 
 # print(env.action_space) 

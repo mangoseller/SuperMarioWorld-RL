@@ -64,7 +64,7 @@ class TrainingConfig:
                 config_dict[k] = v
         return cls(**config_dict)
 
-def get_torch_compatible_actions(actions, num_envs, num_actions=13):
+def get_torch_compatible_actions(actions, num_envs, num_actions=14): # 13
 # Convert integer actions into one-hot format for torchrl
     onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
     if num_envs == 1:
