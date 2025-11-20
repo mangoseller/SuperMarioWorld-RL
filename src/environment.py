@@ -42,6 +42,7 @@ class HandleMarioLifeLoss(gym.Wrapper):
     def __init__(self, env, skip=2):
         super().__init__(env)
         self.skip = skip
+        self.completed = False
         self.prev_lives = None       
         self.steps_since_reset = 0  # Track steps since last reset
  
@@ -56,10 +57,14 @@ class HandleMarioLifeLoss(gym.Wrapper):
         self.steps_since_reset += 1
  
         for i in range(self.skip):
-            obs, reward, term, trunc, info = self.env.step(action) 
+            obs, reward, term, trunc, info = self.env.step(action)
+            CLEARED_VAL = info.get('level_complete', 80)
             total_reward += reward
             current_lives = info.get('lives', None)
-
+            completed = CLEARED_VAL != 80
+            if completed:
+                terminated = True # Should be truncated ?
+                break 
             if self.steps_since_reset > 1:
                 if self.prev_lives is not None and current_lives is not None \
                     and current_lives < self.prev_lives:  
@@ -163,7 +168,7 @@ def make_training_env(num_envs=1):
             retro.make(
             'SuperMarioWorld-Snes',
             state='YoshiIsland2', # YoshiIsland2
-            render_mode='human' # Change to 'rgb_array' when debugging finished
+            render_mode='human', # Change to 'rgb_array' when debugging finished,
         ))
     else:
         return ParallelEnv(
@@ -176,24 +181,7 @@ def make_training_env(num_envs=1):
     ))
 )
 
-def make_training_env(num_envs=1):
-    if num_envs == 1:
-        return prepare_env(
-            retro.make(
-            'SuperMarioWorld-Snes',
-            state='YoshiIsland2', # YoshiIsland2
-            render_mode='human' # Change to 'rgb_array' when debugging finished
-        ))
-    else:
-        return ParallelEnv(
-            num_workers=num_envs,
-            create_env_fn=lambda: prepare_env(
-        retro.make(
-        'SuperMarioWorld-Snes',
-        state='YoshiIsland2',
-        render_mode='rgb_array' # human doesn't work for parallel envs
-    ))
-)
+
 
 MARIO_ACTIONS = [
     [],                   # Do nothing
