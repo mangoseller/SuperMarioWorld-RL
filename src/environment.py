@@ -1,4 +1,4 @@
-from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv
+from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv 
 from torchrl.envs.transforms import (
     ToTensorImage,
     Resize,
@@ -19,7 +19,7 @@ from model_small import ImpalaSmall
 from ppo import PPO
 import torch as t
 import time
-from training_utils import get_torch_compatible_actions
+from training_utils import get_torch_compatible_actions, readable_timestamp
 
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space
@@ -47,7 +47,6 @@ class HandleMarioLifeLoss(gym.Wrapper):
  
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
-        self.prev_lives = info.get('lives', None) # TODO: Find out if this needs to be removed
         self.steps_since_reset = 0  # Reset the counter
         return obs, info
  
@@ -84,7 +83,7 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
             wrapped_env,
             video_folder=record_dir,
             episode_trigger=lambda x: True, # Record every episode, used for eval runs
-            name_prefix=f"eval_{int(time.time())}"
+            name_prefix=f"eval_{readable_timestamp()}"
         )
     wrapped_env = GymWrapper(wrapped_env)
 
@@ -114,7 +113,7 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
 
         while not done:
             action = agent.eval_action_selection(state)
-            eval_environment["action"] = get_torch_compatible_actions(t.tensor(action), num_envs=1)
+            eval_environment["action"] = get_torch_compatible_actions(t.tensor(action))
             eval_environment = eval_env.step(eval_environment)
             state = eval_environment["next"]["pixels"]
             reward = eval_environment["next"]["reward"].item()
@@ -157,6 +156,25 @@ def eval_parallel_safe(model, policy, config, record_dir, num_episodes=3):
     process.join()
     return result_queue.get()
 
+
+def make_training_env(num_envs=1):
+    if num_envs == 1:
+        return prepare_env(
+            retro.make(
+            'SuperMarioWorld-Snes',
+            state='YoshiIsland2', # YoshiIsland2
+            render_mode='human' # Change to 'rgb_array' when debugging finished
+        ))
+    else:
+        return ParallelEnv(
+            num_workers=num_envs,
+            create_env_fn=lambda: prepare_env(
+        retro.make(
+        'SuperMarioWorld-Snes',
+        state='YoshiIsland2',
+        render_mode='rgb_array' # human doesn't work for parallel envs
+    ))
+)
 
 def make_training_env(num_envs=1):
     if num_envs == 1:

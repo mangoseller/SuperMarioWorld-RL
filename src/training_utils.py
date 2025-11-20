@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 import wandb
 import torch as t
+from datetime import datetime
 
 @dataclass
 class TrainingConfig: 
@@ -21,6 +22,8 @@ class TrainingConfig:
     c1: float = 0.5 # Value loss coefficient 
     c2: float = 0.01 # Entropy coefficient
     epochs: int = 4 # Epochs for PPO update
+    lr_schedule: str = 'cosine'
+    min_lr: float = 1e-5
    
     # Model Params
     architecture = 'ImpalaSmall'
@@ -41,7 +44,9 @@ class TrainingConfig:
             "architecture": self.architecture,
             "epochs": self.epochs,
             "buffer_size": self.buffer_size,
-            "minibatch_size": self.minibatch_size
+            "minibatch_size": self.minibatch_size,
+            "lr_schedule": self.lr_schedule,
+            "min_lr": self.min_lr
         }
 
     def setup_wandb(self):
@@ -64,12 +69,13 @@ class TrainingConfig:
                 config_dict[k] = v
         return cls(**config_dict)
 
-def get_torch_compatible_actions(actions, num_envs, num_actions=14): # 13
+def get_torch_compatible_actions(actions, num_actions=14): 
 # Convert integer actions into one-hot format for torchrl
     onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
-    if num_envs == 1:
-        return onehot_actions.squeeze(0)
     return onehot_actions
+
+def readable_timestamp():
+    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 # Sweep config
 SWEEPRUN_CONFIG = TrainingConfig(
@@ -79,7 +85,7 @@ SWEEPRUN_CONFIG = TrainingConfig(
     eval_freq=500_000,
     checkpoint_freq=int(1e40),
     USE_WANDB=True,
-    show_progress=False
+    show_progress=False,
 )
 
 TRAINING_CONFIG = TrainingConfig(
@@ -89,14 +95,16 @@ TRAINING_CONFIG = TrainingConfig(
     eval_freq=250_000,
     checkpoint_freq=200_000,
     USE_WANDB=False,
-    show_progress=True
+    show_progress=True,
+    learning_rate=1e-4,
+    
 )
 
 TESTING_CONFIG = TrainingConfig(
     num_envs=1,
-    num_training_steps=100000000,
-        buffer_size=4096,
-    eval_freq= 2000000, # 20000
+    num_training_steps=1_000_000,
+    buffer_size=4096,
+    eval_freq= 5000, # 20000
     checkpoint_freq=5000000000,
     USE_WANDB=False,
     show_progress=True

@@ -62,9 +62,3 @@ class ImpalaSmall(nn.Module):
         nn.init.constant_(self.value_head.bias, 0)
 
 
-# if __name__ == "__main__":
-#     model = ImpalaSmall()
-#     test_input = t.randn(1, 4, 84, 84) * 255  # Simulate pixel values
-#     policy, value = model(test_input)
-#     print(f"Policy shape: {policy.shape}")  # Should be (1, num_actions)
-#     print(f"Value shape: {value.shape}")    # Should be (1, 1) - can squeeze this to (1,) if needed

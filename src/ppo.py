@@ -3,7 +3,7 @@ from torch.distributions import Categorical
 import numpy as np
 
 class PPO:
-    def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01):
+    def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01, use_lr_scheduling=True, max_updates=None):
         self.model = model
         self.optimizer = optimizer(model.parameters(), lr=lr)
         self.eps = epsilon
@@ -11,6 +11,18 @@ class PPO:
         # Scaling terms for loss computation
         self.c1 = c1 
         self.c2 = c2
+
+        self.use_lr_scheduling = use_lr_scheduling
+        self.initial_lr = lr
+        if use_lr_scheduling and max_updates:
+            # Linear decay to 0 over training
+            self.scheduler = t.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=max_updates,
+                eta_min=0.
+            )
+        else:
+            self.scheduler = None
 
     def action_selection(self, states):
         with t.inference_mode():
@@ -147,10 +159,13 @@ class PPO:
                 # Clip grad norms to prevent exploding gradients
                 t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         
         return np.mean([loss.item() for loss in total_losses])
 
-        
+    def get_current_lr(self):
+        return self.optimizer.param_groups[0]['lr']
 
 
         
