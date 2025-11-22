@@ -14,14 +14,14 @@ class TrainingConfig:
     show_progress: bool
 
     # PPO Parameters
-    learning_rate: float = 1e-4
+    learning_rate: float = 2.5e-4
     gamma: float = 0.99
     lambda_gae: float = 0.95
     epsilon_advantage: float = 1e-8
     clip_eps: float = 0.2
     c1: float = 0.5 # Value loss coefficient 
     c2: float = 0.01 # Entropy coefficient
-    epochs: int = 4 # Epochs for PPO update
+    epochs: int = 8 # Epochs for PPO update
     lr_schedule: str = 'cosine'
     min_lr: float = 1e-5
    
@@ -77,6 +77,27 @@ def get_torch_compatible_actions(actions, num_actions=14):
 def readable_timestamp():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+def get_temp(step, total_steps):
+    start_threshold = int(0.2 * total_steps)
+    end_threshold = int(0.8 * total_steps)
+    if step < start_threshold:
+        return 1.0
+    elif step < end_threshold:
+        # Exponential Decay
+        progress = (step - start_threshold) / (end_threshold - start_threshold)
+        return 1.0 * (0.1/1.0) ** progress
+    else:
+        return 0.1
+def get_entropy(step, total_steps):
+    return 0.0
+    start_threshold = int(0.2 * total_steps)
+    if step < start_threshold:
+        return 0.01
+    else:
+        progress = (step - start_threshold) / (total_steps - start_threshold)
+        return max(0.0001, 0.01 * (0.0001 / 0.01) ** progress)
+
+# Anneal temp over trianing
 # Sweep config
 SWEEPRUN_CONFIG = TrainingConfig(
     num_envs = 6,
@@ -104,9 +125,10 @@ TESTING_CONFIG = TrainingConfig(
     num_envs=1,
     num_training_steps=1_500_000,
     buffer_size=4096,
-    eval_freq= 1_500_000, # 100000
+    eval_freq= 100_000, # 100000
     checkpoint_freq=100_000,
     USE_WANDB=True,
     show_progress=True,
-    c2=0.01, # 0.01 ? 
+    c1=1.0,
+    c2=0.00, # 0.01 ? 
 )
