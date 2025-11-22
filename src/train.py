@@ -28,7 +28,7 @@ from ppo import PPO
 from buffer import RolloutBuffer
 from environment import eval_parallel_safe, make_training_env
 import argparse
-from training_utils import TRAINING_CONFIG, TESTING_CONFIG, get_torch_compatible_actions, SWEEPRUN_CONFIG, readable_timestamp
+from training_utils import TRAINING_CONFIG, TESTING_CONFIG, get_torch_compatible_actions, SWEEPRUN_CONFIG, readable_timestamp, get_entropy, get_temp
 import time
 from tqdm import tqdm 
 import os
@@ -48,7 +48,7 @@ def init_training(agent, config, device):
         device=device,
         c1=config.c1,
         c2=config.c2,
-        max_updates=max_updates,
+        max_steps=config.num_training_steps,
         use_lr_scheduling=True
     )
  # Create buffer, initialize environment and get first state 
@@ -88,12 +88,12 @@ def update_episode_tracking(tracking, config, rewards, dones):
             tracking['current_episode_lengths'][i] = 0
             tracking['episode_num'] += 1
 
-def run_evaluation(model, policy, tracking, config, run, episodes):
+def run_evaluation(model, policy, tracking, config, run, episodes, temp):
     eval_timestamp = readable_timestamp()
     run_dir = f'evals/run_{tracking["run_timestamp"]}'
     eval_dir = f'{run_dir}/eval_step_{tracking["total_env_steps"]}_time_{eval_timestamp}'
     os.makedirs(eval_dir, exist_ok=True)
-    eval_metrics = eval_parallel_safe(model, policy, config, num_episodes=episodes, record_dir=eval_dir)
+    eval_metrics = eval_parallel_safe(model, policy, config, num_episodes=episodes, record_dir=eval_dir, eval_temp=temp)
     
     if config.USE_WANDB:
         wandb.log(eval_metrics)
@@ -106,17 +106,52 @@ def run_evaluation(model, policy, tracking, config, run, episodes):
 
     tracking['last_eval_steps'] = tracking['total_env_steps']
 
-def log_training_metrics(tracking, mean_loss, policy, config, step):
-    if len(tracking['completed_rewards']) > 0 and config.USE_WANDB:
-        wandb.log({
-            "train/loss": mean_loss,
-            "train/mean_reward": np.mean(tracking['completed_rewards']),
-            "train/mean_length": np.mean(tracking['completed_lengths']),
-            "train/num_episodes": len(tracking['completed_rewards']),
-            "train/learning_rate": policy.get_current_lr(),
-            "global_step": step,
-            "num_updates": tracking['num_updates']
-        })
+def log_training_metrics(tracking, diagnostics, policy, config, step, temp):
+   
+    if len(tracking['completed_rewards']) > 0:
+        mean_reward = np.mean(tracking['completed_rewards'])
+        mean_length = np.mean(tracking['completed_lengths'])
+    else:
+        mean_reward = 0
+        mean_length = 0
+    
+    metrics = {
+        # Training performance
+        'train/mean_reward': mean_reward,
+        'train/mean_episode_length': mean_length,
+        'train/episodes': tracking['episode_num'],
+        'train/total_env_steps': tracking['total_env_steps'],
+        
+        # Loss components
+        'loss/total': diagnostics['total_loss'],
+        'loss/policy': diagnostics['policy_loss'],
+        'loss/value': diagnostics['value_loss'],
+        
+        # Diagnostics
+        'diagnostics/entropy': diagnostics['entropy'],
+        'diagnostics/clip_fraction': diagnostics['clip_fraction'],
+        'diagnostics/approx_kl': diagnostics['approx_kl'],
+        'diagnostics/explained_variance': diagnostics['explained_variance'],
+        
+        # Hyperparameters
+        'hyperparams/temperature': temp,
+        'hyperparams/entropy_coef': policy.c2,
+        'hyperparams/learning_rate': policy.get_current_lr(),
+        'hyperparams/value_coef': policy.c1,
+    }
+    
+    if config.USE_WANDB:
+        wandb.log(metrics, step=step)
+    else:
+        # Print key metrics
+        if step % 10_000 == 0:
+            print(f"\n[Step {step}] Metrics:")
+            print(f"  Reward: {mean_reward:.2f}")
+            print(f"  Entropy: {diagnostics['entropy']:.3f}")
+            print(f"  Value Loss: {diagnostics['value_loss']:.3f}")
+            print(f"  Explained Var: {diagnostics['explained_variance']:.3f}")
+            print(f"  Clip Frac: {diagnostics['clip_fraction']:.3f}")
+            print(f"  KL: {diagnostics['approx_kl']:.4f}")
 
 def save_checkpoint(agent, tracking, config, run, step):
 
@@ -131,13 +166,11 @@ def save_checkpoint(agent, tracking, config, run, step):
         run.log_artifact(artifact)
     tracking['last_checkpoint'] = step
 
-def train(model, num_eval_episodes=2):
+def train(model, num_eval_episodes=5):
     run = config.setup_wandb()
     device = "cuda" if t.cuda.is_available() else "cpu"
     agent = model().to(device)
-    initial_entropy = config.c2
-    # waits = t.load("ImpalaSmall973.pt", map_location="cpu")
-    # agent.load_state_dict(waits)
+
     agent, policy, buffer, env, environment, state = init_training(agent, config, device)
     if device == "cuda":
         assert next(agent.parameters()).is_cuda, "Model is not on GPU!"
@@ -148,15 +181,11 @@ def train(model, num_eval_episodes=2):
     pbar = tqdm(range(config.num_training_steps), disable=not config.show_progress)
     
     for step in pbar:
+        policy.c2 = get_entropy(step, total_steps=config.num_training_steps) 
+        temp = get_temp(step, total_steps=config.num_training_steps) 
+        actions, log_probs, values = policy.action_selection(state, temp)
 
-        # Linearly decay entropy to encourage deterministic policy
-        progress = step / config.num_training_steps
-        new_entropy = initial_entropy * (1.0 - progress)
-        policy.c2 = (max(0.0, new_entropy))
-        # print(policy.c2)
-        
-       
-        actions, log_probs, values = policy.action_selection(state)
+
         environment["action"] = get_torch_compatible_actions(actions)
         environment = env.step(environment)
         next_state = environment["next"]["pixels"]
@@ -194,17 +223,20 @@ def train(model, num_eval_episodes=2):
             pbar.set_postfix({
                 'episodes': tracking['episode_num'],
                 'mean_reward': f"{np.mean(tracking['completed_rewards']):.2f}",
-                'updates': tracking['num_updates']
+                'updates': tracking['num_updates'],
+                'temp': f"{temp:.3f}",
+                'lr': f"{policy.get_current_lr():.2e}",
+                'c2': f"{policy.c2}",
             })
     
         # Evaluation
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
-            run_evaluation(model, policy, tracking, config, run, num_eval_episodes)
+            run_evaluation(model, policy, tracking, config, run, num_eval_episodes, temp=0.1)
+            print(f"C2: {policy.c2}, Temp: {temp}")
         if config.num_envs == 1:
             if dones.item(): # TODO: Separate training with 1 env and multienvs into different functions
                 environment = env.reset() # Handle single env
                 state = environment["pixels"]
-            
         state = next_state
         
         # PPO update when buffer is full
@@ -213,7 +245,7 @@ def train(model, num_eval_episodes=2):
             tracking['num_updates'] += 1
             
             # Log metrics
-            log_training_metrics(tracking, mean_loss, policy, config, step)
+            log_training_metrics(tracking, mean_loss, policy, config, step, temp)
             tracking['completed_rewards'].clear()
             tracking['completed_lengths'].clear()
             

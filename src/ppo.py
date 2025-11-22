@@ -3,7 +3,7 @@ from torch.distributions import Categorical
 import numpy as np
 
 class PPO:
-    def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01, use_lr_scheduling=True, max_updates=None):
+    def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01, use_lr_scheduling=True, max_steps=None):
         self.model = model
         self.optimizer = optimizer(model.parameters(), lr=lr)
         self.eps = epsilon
@@ -11,20 +11,19 @@ class PPO:
         # Scaling terms for loss computation
         self.c1 = c1 
         self.c2 = c2
-
         self.use_lr_scheduling = use_lr_scheduling
         self.initial_lr = lr
-        if use_lr_scheduling and max_updates:
-            # Linear decay to 0 over training
+        if use_lr_scheduling:
+            # Cosine Annealing  
             self.scheduler = t.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
-                T_max=max_updates,
-                eta_min=0.
+                T_max=max_steps,
+                eta_min=1e-5,
             )
         else:
             self.scheduler = None
 
-    def action_selection(self, states):
+    def action_selection(self, states, temp):
         with t.inference_mode():
             states = states.to(self.device)
             # states has shape (num_envs, 4, 84, 84) or (4, 84, 84) if num_envs == 1
@@ -33,20 +32,22 @@ class PPO:
 
             state_logits, value = self.model(states) # add batch dim, shape (1, 4, 84, 84)
         
-        distributions = Categorical(logits=state_logits)
+        scaled_logits = state_logits / temp
+        distributions = Categorical(logits=scaled_logits)
         actions = distributions.sample()
-        action_probs = distributions.log_prob(actions)
-        return actions, action_probs, value.squeeze(-1)
 
-    def eval_action_selection(self, state):
+        raw_distributions = Categorical(logits=state_logits)
+        raw_action_probs = raw_distributions.log_prob(actions)
+       
+        return actions, raw_action_probs, value.squeeze(-1)
+    
+    def eval_action_selection(self, state, temp):
         with t.inference_mode():
             state = state.to(self.device)
             logits, _ = self.model(state.unsqueeze(0))
-
-        action = t.argmax(logits, dim=-1)
-        # STOCHASTIC
-        # distributions = Categorical(logits=logits)
-        # action = distributions.sample()
+        scaled_logits = logits / temp
+        distribution = Categorical(logits=scaled_logits)
+        action = distribution.sample()
         return action.item()
 
     def compute_loss(self, states, actions, old_log_probs, advantages, returns):
@@ -80,27 +81,48 @@ class PPO:
 
         min_ratio = t.minimum(clipped_ratio, unclipped_ratio)
         policy_loss = -t.mean(min_ratio) 
-        
+        entropy_loss = distributions.entropy().mean()
         # MSE loss on value-head predictions
         value_loss = t.mean((values.squeeze() - returns)**2)
-        return policy_loss + (self.c1 * value_loss) + (self.c2 * -distributions.entropy().mean()) # Total loss
+        total_loss =  policy_loss + (self.c1 * value_loss) + (self.c2 * -entropy_loss)# Total loss
+
+  # Return diagnostics
+        with t.no_grad():
+            # Clipping fraction
+            clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
+            
+            # Approximate KL divergence
+            approx_kl = ((ratio - 1) - t.log(ratio)).mean()
+            
+            # Explained variance
+            y_pred = values.squeeze()
+            y_true = returns
+            var_y = t.var(y_true)
+            explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
+            
+        diagnostics = {
+            'policy_loss': policy_loss.item(),
+            'value_loss': value_loss.item(),
+            'entropy': entropy_loss.item(),  # Positive entropy
+            'clip_fraction': clip_fraction.item(),
+            'approx_kl': approx_kl.item(),
+            'explained_variance': explained_var.item(),
+        }
+        
+        return total_loss, diagnostics
 
     def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95, next_state=None):
-        _, rewards, _, _, values, dones =  buffer.get()
+        _, rewards, _, _, values, dones = buffer.get()
         assert all(i.shape == (rewards.shape[0],) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
         values = values.detach()       
 
-        # Reshape from flattened(steps * num_envs,) to (steps, num_envs)
         reshape = lambda tensor: tensor.view(len(buffer), buffer.rewards.shape[1])
         rewards = reshape(rewards)
         values = reshape(values)
         dones = reshape(dones)
 
-        # At timestep t we need V(s_{t+1})
         advantages = t.zeros_like(rewards)
-       
 
-        # Get the value of the next state to find the value of the most recent, (first) state
         if next_state is not None:
             with t.no_grad():
                 _, last_values = self.model(next_state.to(self.device))
@@ -116,26 +138,31 @@ class PPO:
             else:
                 next_value = values[i+1]
 
-            # Compute TD Error
             delta = rewards[i] + gamma * next_value * (1-dones[i]) - values[i]
-            
-            # Accumulate gae
             gaes = delta + gamma * lambda_ * (1 - dones[i]) * gaes
             advantages[i] = gaes
 
-        # Flatten for the update
         advantages = advantages.view(-1)
         values = values.view(-1)
         returns = advantages + values
         return advantages, returns
-
 
     def update(self, buffer, num_epochs=5, minibatch_size=64, eps=1e-8, next_state=None):
         self.model.train()
         advantages, returns = self.compute_advantages(buffer, next_state=next_state)
         normalized_advantages = (advantages - advantages.mean()) / (advantages.std() + eps)
         states, _, actions, log_probs, _, _ = buffer.get()
+        
         total_losses = []
+        all_diagnostics = {
+            'policy_loss': [],
+            'value_loss': [],
+            'entropy': [],
+            'clip_fraction': [],
+            'approx_kl': [],
+            'explained_variance': [],
+        }
+        
         for _ in range(1, num_epochs+1):
             permuted_indices = t.randperm(states.shape[0]) 
             states = states[permuted_indices]
@@ -152,23 +179,34 @@ class PPO:
                 mb_advantages = advantages[start_idx:end_idx]
                 mb_returns = returns[start_idx:end_idx]
 
-            # Compute loss over this batch
-                loss = self.compute_loss(mb_states, mb_actions, mb_log_probs, 
-                                         mb_advantages, mb_returns)
-                total_losses.append(loss)
+                loss, diagnostics = self.compute_loss(
+                    mb_states, mb_actions, mb_log_probs, mb_advantages, mb_returns
+                )
+                total_losses.append(loss.item())
+                
+                # Accumulate diagnostics
+                for key, value in diagnostics.items():
+                    all_diagnostics[key].append(value)
 
                 self.optimizer.zero_grad()
                 loss.backward()
-                # Clip grad norms to prevent exploding gradients
                 t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
+                
         if self.scheduler is not None:
             self.scheduler.step()
         
-        return np.mean([loss.item() for loss in total_losses])
+        # Average diagnostics
+        averaged_diagnostics = {
+            key: np.mean(values) for key, values in all_diagnostics.items()
+        }
+        averaged_diagnostics['total_loss'] = np.mean(total_losses)
+        
+        return averaged_diagnostics
 
     def get_current_lr(self):
         return self.optimizer.param_groups[0]['lr']
+    
 
 
         

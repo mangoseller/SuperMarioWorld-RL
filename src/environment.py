@@ -168,11 +168,11 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     Resize(84, 84), # Can also do 96x96, 128x128
     GrayScale(),
     CatFrames(N=4, dim=-3), # dim -3 stacks frames over the channel dimension (does this make sense with gray frames?)
-    StepCounter(),
+    StepCounter(max_steps=25),
     RewardSum(),
   ]))
  
-def evaluate(agent, num_episodes=5, record_dir='/evals'):
+def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
     eval_rewards, eval_lengths = [], []
     os.makedirs(record_dir, exist_ok=True)
     eval_env = retro.make('SuperMarioWorld-Snes',
@@ -188,7 +188,7 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
         done = False
 
         while not done:
-            action = agent.eval_action_selection(state)
+            action = agent.eval_action_selection(state, temp)
             eval_environment["action"] = get_torch_compatible_actions(t.tensor(action))
             eval_environment = eval_env.step(eval_environment)
             state = eval_environment["next"]["pixels"]
@@ -211,22 +211,22 @@ def evaluate(agent, num_episodes=5, record_dir='/evals'):
     }
 
 
-def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue):    
+def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue, temp):    
     agent = model().to('cpu')
     agent.load_state_dict(model_state_dict)
     eval_policy = PPO(agent, config.learning_rate, epsilon=config.clip_eps, 
                       optimizer=t.optim.Adam, device='cpu', 
-                      c1=config.c1, c2=config.c2)
-    metrics = evaluate(eval_policy, num_episodes, record_dir)
+                      c1=config.c1, c2=0)
+    metrics = evaluate(eval_policy, num_episodes, record_dir, temp)
     result_queue.put(metrics)
 
-def eval_parallel_safe(model, policy, config, record_dir, num_episodes=3):
+def eval_parallel_safe(model, policy, config, record_dir, eval_temp=0.1, num_episodes=3):
 # Run evaluate in a sub-process 
     result_queue = Queue()
     # Move model weights to cpu
     cpu_state_dicts = {k: v.cpu() for k, v in policy.model.state_dict().items()}
     process = Process(target=_run_eval_, args=(
-        model, cpu_state_dicts, config, num_episodes, record_dir, result_queue
+        model, cpu_state_dicts, config, num_episodes, record_dir, result_queue, eval_temp
     ))
     process.start()
     process.join()
