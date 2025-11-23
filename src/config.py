@@ -84,18 +84,18 @@ SWEEPRUN_CONFIG = TrainingConfig(
     lr_schedule='cosine'
 )
 
+
 TRAINING_CONFIG = TrainingConfig(
-    num_envs=8,
-    num_training_steps=int(1e6),
-    steps_per_env=512, 
+    num_envs=1,
+    num_training_steps=int(1.5e6),
+    steps_per_env=4096, 
     eval_freq=250_000,
     checkpoint_freq=200_000,
-    USE_WANDB=False,
+    USE_WANDB=True,
     show_progress=True,
-    learning_rate=1e-4,
-    lr_schedule='cosine'
+    learning_rate=2e-5,
+    lr_schedule='linear'
 )
-
 TESTING_CONFIG = TrainingConfig(
     num_envs=8,
     num_training_steps=1_500_000,
@@ -107,7 +107,7 @@ TESTING_CONFIG = TrainingConfig(
     c1=0.8,
     c2=0.01,
     learning_rate=2e-5,
-    lr_schedule='cosine'
+    lr_schedule='linear'
 )
 
 FINETUNE_CONFIG = TrainingConfig(

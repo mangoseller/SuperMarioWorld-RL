@@ -1,9 +1,20 @@
 import warnings
-warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning, module="torch.cuda")
-warnings.filterwarnings('ignore', message="Conversion of an array with ndim > 0 to a scalar is deprecated", 
-                       category=DeprecationWarning, module="torchrl.envs.libs.gym")
-warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", 
-                       category=UserWarning, module="gymnasium.wrappers.rendering")
+# Ignore CUDA/NVML warnings
+warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning)
+
+# Ignore Deprecated NumPy conversion (removed module constraint to ensure it catches)
+warnings.filterwarnings('ignore', message=".*Conversion of an array with ndim > 0 to a scalar is deprecated.*", category=DeprecationWarning)
+
+# Ignore Tensor copy construction warning
+warnings.filterwarnings('ignore', message=".*To copy construct from a tensor.*", category=UserWarning)
+
+# Ignore Video overwriting warning
+# warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", category=UserWarning)
+# warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning, module="torch.cuda")
+# warnings.filterwarnings('ignore', message="Conversion of an array with ndim > 0 to a scalar is deprecated", 
+#                        category=DeprecationWarning, module="torchrl.envs.libs.gym")
+# warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", 
+#                        category=UserWarning, module="gymnasium.wrappers.rendering")
 
 import torch as t 
 import numpy as np
@@ -11,12 +22,19 @@ import argparse
 from tqdm import tqdm
 from model_small import ImpalaSmall
 from config import TRAINING_CONFIG, TESTING_CONFIG, FINETUNE_CONFIG
-from training_helpers import (
-    init_training, init_tracking, update_episode_tracking,
-    log_training_metrics, save_checkpoint, handle_env_resets
-)
 from evals import run_evaluation
-from training_utils import get_torch_compatible_actions, get_temp, get_entropy
+from utils import (
+    init_training, 
+    init_tracking, 
+    update_episode_tracking,
+    log_training_metrics, 
+    save_checkpoint, 
+    handle_env_resets,
+    get_torch_compatible_actions,
+    get_entropy,
+)
+
+
 
 
 def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
@@ -41,9 +59,8 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     
     for step in pbar:
         policy.c2 = get_entropy(step, total_steps=config.num_training_steps) 
-        temp = get_temp(step, total_steps=config.num_training_steps)
         
-        actions, log_probs, values = policy.action_selection(state, temp)
+        actions, log_probs, values = policy.action_selection(state)
         environment["action"] = get_torch_compatible_actions(actions)
         environment = env.step(environment)
         next_state = environment["next"]["pixels"]
@@ -80,21 +97,20 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
                 'episodes': tracking['episode_num'],
                 'mean_reward': f"{np.mean(tracking['completed_rewards']):.2f}",
                 'updates': tracking['num_updates'],
-                'temp': f"{temp:.3f}",
                 'lr': f"{policy.get_current_lr():.2e}",
                 'c2': f"{policy.c2:.4f}",
             })
     
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
-            run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes, temp=0.1)
+            run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes)
 
         state, environment = handle_env_resets(env, environment, next_state, terminated, config.num_envs)      
           
         if buffer.idx == buffer.capacity:
-            mean_loss = policy.update(buffer, next_state=state, temp=temp)
+            mean_loss = policy.update(buffer, next_state=state)
             tracking['num_updates'] += 1
             
-            log_training_metrics(tracking, mean_loss, policy, config, step, temp)
+            log_training_metrics(tracking, mean_loss, policy, config, step)
             tracking['completed_rewards'].clear()
             tracking['completed_lengths'].clear()
             
@@ -105,7 +121,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
                 print(f"Model checkpoint saved at step {step}")
 
     # Perform final evaluation and store last weights
-    run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes, temp=0.1)
+    run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes)
     save_checkpoint(agent, tracking, config, run, step)
     
     if config.USE_WANDB:
@@ -117,7 +133,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     return agent
 
 
-def train(model, config, num_eval_episodes=5):
+def train(model, config, num_eval_episodes=6):
     agent = model()
     return training_loop(agent, config, num_eval_episodes)
 

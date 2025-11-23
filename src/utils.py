@@ -5,8 +5,11 @@ import wandb
 from ppo import PPO
 from buffer import RolloutBuffer
 from environment import make_training_env
-from training_utils import readable_timestamp
+from datetime import datetime
 
+
+def readable_timestamp():
+    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 def init_training(agent, config, device):
     # Initialize PPO policy, buffer, environment, and get initial state
@@ -51,7 +54,7 @@ def update_episode_tracking(tracking, config, rewards, dones):
             tracking['episode_num'] += 1
 
 
-def log_training_metrics(tracking, diagnostics, policy, config, step, temp):
+def log_training_metrics(tracking, diagnostics, policy, config, step):
     # Log training metrics to wandb or console
     if len(tracking['completed_rewards']) > 0:
         mean_reward = np.mean(tracking['completed_rewards'])
@@ -75,7 +78,6 @@ def log_training_metrics(tracking, diagnostics, policy, config, step, temp):
         'diagnostics/approx_kl': diagnostics['approx_kl'],
         'diagnostics/explained_variance': diagnostics['explained_variance'],
         
-        'hyperparams/temperature': temp,
         'hyperparams/entropy_coef': policy.c2,
         'hyperparams/learning_rate': policy.get_current_lr(),
         'hyperparams/value_coef': policy.c1,
@@ -97,16 +99,14 @@ def save_checkpoint(agent, tracking, config, run, step):
     
     tracking['last_checkpoint'] = step
 
+def handle_env_resets(env, environment, next_state, terminated, num_envs): # TODO: Fix this up
 
-
-def handle_env_resets(env, environment, next_state, terminated, num_envs):
-    # Handle environment resets for both single and parallel environments in TorchRL.
-    
     if num_envs == 1:
         # Single environment case
         if terminated.item():
             environment = env.reset()
             state = environment["pixels"]
+            # Ensure correct shape [1, C, H, W]
             if state.dim() == 3:
                 state = state.unsqueeze(0)
         else:
@@ -117,16 +117,34 @@ def handle_env_resets(env, environment, next_state, terminated, num_envs):
         done_mask = terminated.squeeze(-1) if terminated.dim() > 1 else terminated
         
         if done_mask.any():
+            # Get the device of the environment
+            env_device = next_state.device
+            
             # Create a TensorDict with _reset key for done environments
             reset_td = environment.clone()
+            
+            # Ensure done_mask is on the same device as environment
+            done_mask = done_mask.to(env_device)
+            
             # Set _reset with shape [num_envs, 1] as expected by TorchRL
             reset_td["_reset"] = done_mask.unsqueeze(-1)
+            
+            # Move reset_td to CPU for the reset operation (ParallelEnv expects CPU)
+            reset_td = reset_td.to('cpu')
             
             # Reset only the done environments
             reset_output = env.reset(reset_td)
             
+            # Move reset output back to original device
+            reset_output = reset_output.to(env_device)
+            
             # Get the pixels from the reset output
             reset_pixels = reset_output["pixels"]
+            
+            # Ensure all tensors are on the same device for the where operation
+            done_mask = done_mask.to(env_device)
+            reset_pixels = reset_pixels.to(env_device)
+            next_state = next_state.to(env_device)
             
             # Update state: use reset pixels for done envs, next_state for others
             # Broadcast done_mask to match pixel dimensions [num_envs, C, H, W]
@@ -142,3 +160,15 @@ def handle_env_resets(env, environment, next_state, terminated, num_envs):
             state = next_state
     
     return state, environment
+
+
+def get_torch_compatible_actions(actions, num_actions=14): 
+    # Convert integer actions into one-hot format for torchrl
+    onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
+    return onehot_actions
+
+
+def get_entropy(step, total_steps, max_entropy=0.1, min_entropy=0.001):
+       progress = step / total_steps
+       current_entropy = max_entropy - (max_entropy - min_entropy) * progress
+       return current_entropy

@@ -130,7 +130,6 @@ class MidwayFlagReward:
 
 
 class LifeLossPenalty:
- 
     def __init__(self):
         self.penalty = REWARD_CONFIG['life_loss_penalty']
         self.last_lives = None

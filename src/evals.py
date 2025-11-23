@@ -6,10 +6,10 @@ import torch as t
 import wandb
 from multiprocessing import Process, Queue
 from environment import prepare_env
-from training_utils import get_torch_compatible_actions, readable_timestamp
+from utils import get_torch_compatible_actions, readable_timestamp
 from ppo import PPO
 
-def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
+def evaluate(agent, num_episodes=5, record_dir='/evals'):
     eval_rewards, eval_lengths = [], []
     os.makedirs(record_dir, exist_ok=True)
     eval_env = retro.make('SuperMarioWorld-Snes',
@@ -25,7 +25,7 @@ def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
         done = False
 
         while not done:
-            action = agent.eval_action_selection(state, temp)
+            action, _, _ = agent.action_selection(state)
             eval_environment["action"] = get_torch_compatible_actions(t.tensor(action))
             eval_environment = eval_env.step(eval_environment)
             state = eval_environment["next"]["pixels"]
@@ -48,35 +48,35 @@ def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
     }
 
 
-def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue, temp):   
+def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue):   
 # Internal function called to setup and run eval
     agent = model().to('cpu')
     agent.load_state_dict(model_state_dict)
     eval_policy = PPO(agent, config, device="cpu")
-    metrics = evaluate(eval_policy, num_episodes, record_dir, temp)
+    metrics = evaluate(eval_policy, num_episodes, record_dir)
     result_queue.put(metrics)
 
 
-def eval_parallel_safe(model, policy, config, record_dir, eval_temp=0.1, num_episodes=3):
+def eval_parallel_safe(model, policy, config, record_dir, num_episodes=5):
 # Run evaluate in a sub-process 
     result_queue = Queue()
     # Move model weights to cpu
     cpu_state_dicts = {k: v.cpu() for k, v in policy.model.state_dict().items()}
     process = Process(target=_run_eval_, args=(
-        model, cpu_state_dicts, config, num_episodes, record_dir, result_queue, eval_temp
+        model, cpu_state_dicts, config, num_episodes, record_dir, result_queue 
     ))
     process.start()
     process.join()
     return result_queue.get()
 
 
-def run_evaluation(model, policy, tracking, config, run, episodes, temp):
+def run_evaluation(model, policy, tracking, config, run, episodes):
     # Run evaluation and log results to wandb - used in main training calls
     eval_timestamp = readable_timestamp()
     run_dir = f'evals/run_{tracking["run_timestamp"]}'
     eval_dir = f'{run_dir}/eval_step_{tracking["total_env_steps"]}_time_{eval_timestamp}'
     os.makedirs(eval_dir, exist_ok=True)
-    eval_metrics = eval_parallel_safe(model, policy, config, num_episodes=episodes, record_dir=eval_dir, eval_temp=temp)
+    eval_metrics = eval_parallel_safe(model, policy, config, num_episodes=episodes, record_dir=eval_dir)
     
     if config.USE_WANDB:
         wandb.log(eval_metrics)

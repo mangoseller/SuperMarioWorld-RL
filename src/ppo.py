@@ -13,7 +13,7 @@ class PPO:
         self.c1 = config.c1
         self.c2 = config.c2    
         self.initial_lr = config.learning_rate
-        lr_schedule = getattr(config, 'lr_schedule', 'cosine').lower() 
+        lr_schedule = getattr(config, 'lr_schedule', 'linear').lower() 
 
         if lr_schedule == 'cosine':
             self.scheduler = t.optim.lr_scheduler.CosineAnnealingLR(
@@ -30,48 +30,32 @@ class PPO:
             )
         elif lr_schedule == 'constant':
             self.scheduler = None
-    
-    def action_selection(self, states, temp):
-       # Select actions during training (stochastic)
-        with t.inference_mode():
-            states = states.to(self.device)
-            if states.dim() == 3:
-                states = states.unsqueeze(0)
 
-            state_logits, value = self.model(states)
-        
-        scaled_logits = state_logits / temp
-        distributions = Categorical(logits=scaled_logits)
+    @t.inference_mode()
+    def action_selection(self, states):
+
+        states = states.to(self.device)
+        if states.dim() == 3:
+            states = states.unsqueeze(0)
+
+        state_logits, value = self.model(states)
+        logits = state_logits  
+        distributions = Categorical(logits=logits)
         actions = distributions.sample()
         log_probs = distributions.log_prob(actions)
-       
+
         return actions, log_probs, value.squeeze(-1)
 
-    def eval_action_selection(self, state, temp):
-      # Select actions during evals - should ideally be entirely deterministic 
-        with t.inference_mode():
-            state = state.to(self.device)
-            logits, _ = self.model(state.unsqueeze(0))
-
-        if temp == 0:
-            return t.argmax(logits, dim=-1).item()
-
-        scaled_logits = logits / temp
-        distribution = Categorical(logits=scaled_logits)
-        action = distribution.sample()
-
-        return action.item()
-    
+    @t.no_grad()
     def _compute_diagnostics(self, ratio, values, returns):
         # Compute diagnostic metrics for logging
-        with t.no_grad():
-            clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
-            approx_kl = ((ratio - 1) - t.log(ratio)).mean()
+        clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
+        approx_kl = ((ratio - 1) - t.log(ratio)).mean()
             
-            y_pred = values.squeeze()
-            y_true = returns
-            var_y = t.var(y_true)
-            explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
+        y_pred = values.squeeze()
+        y_true = returns
+        var_y = t.var(y_true)
+        explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
             
         return {
             'clip_fraction': clip_fraction.item(),
@@ -79,7 +63,7 @@ class PPO:
             'explained_variance': explained_var.item(),
         }
     
-    def compute_loss(self, states, actions, old_log_probs, advantages, returns, temp):
+    def compute_loss(self, states, actions, old_log_probs, advantages, returns):
         # Compute PPO loss
         states = states.to(self.device)
         actions = actions.to(self.device)
@@ -88,9 +72,7 @@ class PPO:
         returns = returns.to(self.device)
 
         logits, values = self.model(states)
-        scaled_logits = logits / temp
-
-        distributions = Categorical(logits=scaled_logits)
+        distributions = Categorical(logits=logits)
         new_log_probs = distributions.log_prob(actions)
 
         old_log_probs = old_log_probs.detach()
@@ -153,7 +135,7 @@ class PPO:
         returns = advantages + values
         return advantages, returns
 
-    def update(self, buffer, temp, num_epochs=5, minibatch_size=64, eps=1e-8, next_state=None):
+    def update(self, buffer, num_epochs=5, minibatch_size=64, eps=1e-8, next_state=None):
         # Perform a PPO update 
         self.model.train()
         advantages, returns = self.compute_advantages(buffer, next_state=next_state)
@@ -187,7 +169,7 @@ class PPO:
                 mb_returns = returns[start_idx:end_idx]
 
                 loss, diagnostics = self.compute_loss(
-                    mb_states, mb_actions, mb_log_probs, mb_advantages, mb_returns, temp=temp
+                    mb_states, mb_actions, mb_log_probs, mb_advantages, mb_returns
                 )
                 total_losses.append(loss.item())
                 

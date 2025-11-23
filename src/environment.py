@@ -12,7 +12,7 @@ import retro
 from gymnasium.wrappers import RecordVideo
 from wrappers import Discretizer, FrameSkipAndTermination, MaxStepWrapper
 from rewards import ComposedRewardWrapper
-from training_utils import readable_timestamp
+
 
 
 MARIO_ACTIONS = [
@@ -39,6 +39,7 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     wrapped_env = FrameSkipAndTermination(wrapped_env, skip=skip)
     wrapped_env = MaxStepWrapper(wrapped_env, max_steps=5000)
     if record:
+        from utils import readable_timestamp # Avoid circular imports
         wrapped_env = RecordVideo(
             wrapped_env,
             video_folder=record_dir,
@@ -56,7 +57,6 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     RewardSum(),
   ]))
 
-#
 def make_training_env(num_envs=1):
     if num_envs == 1:
         return prepare_env(
