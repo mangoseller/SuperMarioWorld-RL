@@ -5,32 +5,38 @@ sweep_config = {
         'goal': 'maximize'
     },
     'early_terminate': {
-            'type': 'hyperband',
-            'min_iter': 3,
-            's': 2,
-            'eta': 3,
-            'max_iter': 16
-
+        'type': 'hyperband',
+        'min_iter': 3,
+        'eta': 2
     },
     'parameters': {
         'learning_rate': {
+            # Log uniform search centered around 2e-5
             'distribution': 'log_uniform_values',
-            'min': 1e-5,
-            'max': 1e-3,
+            'min': 5e-6,
+            'max': 5e-5,
         },
-        'c2': { # Entropy
-               'distribution': 'uniform',
-               'min': 0.01,
-               'max': 0.1
-               },
-        # 'gamma': {
-        #     'values': [0.99, 0.995, 0.999]
-        # },
-        # 'minibatch_size': {
-        #     'values': [32, 64, 128]
-        # },
-        # 'epochs': {
-        #     'values': [3, 4, 5]
-        # }
+        'epochs': {
+            # Larger range of PPO update epochs
+            'values': [3, 5, 8, 10]
+        },
+        'gamma': {
+            # High gamma values for long time horizons
+            'distribution': 'uniform',
+            'min': 0.991,
+            'max': 0.9999
+        },
+        'c1': {
+            # Value function coefficient
+            'distribution': 'uniform',
+            'min': 0.5,
+            'max': 1.0
+        },
+        'c2': { 
+            # Entropy coefficient
+            'distribution': 'uniform',
+            'min': 0.01,
+            'max': 0.1
+        }
     }
 }

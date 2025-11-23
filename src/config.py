@@ -70,12 +70,12 @@ class TrainingConfig:
 
 SWEEPRUN_CONFIG = TrainingConfig(
     num_envs=6,
-    num_training_steps=5_000_000,
-    buffer_size=2048,
-    eval_freq=500_000,
-    checkpoint_freq=int(1e40),
+    num_training_steps=1_000_000,
+    buffer_size=4096,
+    eval_freq=225_000,
+    checkpoint_freq=0,
     USE_WANDB=True,
-    show_progress=False,
+    show_progress=True,
     learning_rate=2e-5,
     lr_schedule='cosine'
 )
