@@ -1,12 +1,13 @@
+
 import numpy as np
 import retro
 import os
 import torch as t
+import wandb
 from multiprocessing import Process, Queue
 from environment import prepare_env
 from training_utils import get_torch_compatible_actions, readable_timestamp
 from ppo import PPO
-
 
 def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
     eval_rewards, eval_lengths = [], []
@@ -47,12 +48,11 @@ def evaluate(agent, num_episodes=5, record_dir='/evals', temp=0.1):
     }
 
 
-def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue, temp):    
+def _run_eval_(model, model_state_dict, config, num_episodes, record_dir, result_queue, temp):   
+# Internal function called to setup and run eval
     agent = model().to('cpu')
     agent.load_state_dict(model_state_dict)
-    eval_policy = PPO(agent, config.learning_rate, epsilon=config.clip_eps, 
-                      optimizer=t.optim.Adam, device='cpu', 
-                      c1=config.c1, c2=0)
+    eval_policy = PPO(agent, config, device="cpu")
     metrics = evaluate(eval_policy, num_episodes, record_dir, temp)
     result_queue.put(metrics)
 
@@ -68,3 +68,23 @@ def eval_parallel_safe(model, policy, config, record_dir, eval_temp=0.1, num_epi
     process.start()
     process.join()
     return result_queue.get()
+
+
+def run_evaluation(model, policy, tracking, config, run, episodes, temp):
+    # Run evaluation and log results to wandb - used in main training calls
+    eval_timestamp = readable_timestamp()
+    run_dir = f'evals/run_{tracking["run_timestamp"]}'
+    eval_dir = f'{run_dir}/eval_step_{tracking["total_env_steps"]}_time_{eval_timestamp}'
+    os.makedirs(eval_dir, exist_ok=True)
+    eval_metrics = eval_parallel_safe(model, policy, config, num_episodes=episodes, record_dir=eval_dir, eval_temp=temp)
+    
+    if config.USE_WANDB:
+        wandb.log(eval_metrics)
+        vids = wandb.Artifact(
+            f"{readable_timestamp()}_step_{tracking['total_env_steps']}",
+            type="eval_videos"
+        )
+        vids.add_dir(eval_dir)
+        run.log_artifact(vids)
+
+    tracking['last_eval_steps'] = tracking['total_env_steps']

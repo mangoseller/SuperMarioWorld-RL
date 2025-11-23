@@ -5,7 +5,6 @@ import numpy as np
 class ImpalaSmall(nn.Module):
     def __init__(self, num_actions=13):
         super().__init__()
-        # input is (4x84x84) 4 frame stacking greyscale
         self.conv1 = nn.Conv2d(
             in_channels=4,
             out_channels=16,
@@ -40,7 +39,7 @@ class ImpalaSmall(nn.Module):
         x = self.feature_extractor(x)
         return self.policy_head(x), self.value_head(x)
 
-    def _initialize_weights(self): # TODO: Generalize this to both models
+    def _initialize_weights(self): # TODO: Generalize this to both models & comment better
 
         """Apply orthogonal intialization to weights with appropiate gain,
         sqrt(2) for convolutional and FC layers, policy head 0.01,

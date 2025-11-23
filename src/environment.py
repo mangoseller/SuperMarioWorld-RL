@@ -38,7 +38,7 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     wrapped_env = ComposedRewardWrapper(wrapped_env)
     wrapped_env = FrameSkipAndTermination(wrapped_env, skip=skip)
     wrapped_env = MaxStepWrapper(wrapped_env, max_steps=5000)
-    if record is not None:
+    if record:
         wrapped_env = RecordVideo(
             wrapped_env,
             video_folder=record_dir,
@@ -51,8 +51,8 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     ToTensorImage(), # Convert stable-retro return values to PyTorch Tensors
     Resize(84, 84), # Can also do 96x96, 128x128
     GrayScale(),
-    CatFrames(N=4, dim=-3), # dim -3 stacks frames over the channel dimension (does this make sense with gray frames?)
-    StepCounter(max_steps=25),
+    CatFrames(N=4, dim=-3), # dim -3 stacks frames over the channel dimension
+    StepCounter(),
     RewardSum(),
   ]))
 

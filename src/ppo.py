@@ -2,62 +2,85 @@ import torch as t
 from torch.distributions import Categorical
 import numpy as np
 
+
 class PPO:
-    def __init__(self, model, lr, epsilon, optimizer, device, c1=0.5, c2=0.01, use_lr_scheduling=True, max_steps=None):
+    def __init__(self, model, config, device):
         self.model = model
-        self.optimizer = optimizer(model.parameters(), lr=lr)
-        self.eps = epsilon
+        self.config = config
         self.device = device
-        # Scaling terms for loss computation
-        self.c1 = c1 
-        self.c2 = c2
-        self.use_lr_scheduling = use_lr_scheduling
-        self.initial_lr = lr
-        if use_lr_scheduling:
-            # Cosine Annealing  
+        self.optimizer = t.optim.Adam(model.parameters(), lr=config.learning_rate)
+        self.eps = config.clip_eps
+        self.c1 = config.c1
+        self.c2 = config.c2    
+        self.initial_lr = config.learning_rate
+        lr_schedule = getattr(config, 'lr_schedule', 'cosine').lower() 
+
+        if lr_schedule == 'cosine':
             self.scheduler = t.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
-                T_max=max_steps,
-                eta_min=1e-6,
+                T_max=config.num_training_steps,
+                eta_min=config.min_lr,
             )
-        else:
+        elif lr_schedule == 'linear':
+            self.scheduler = t.optim.lr_scheduler.LinearLR(
+                self.optimizer,
+                start_factor=1.0,
+                end_factor=config.min_lr / config.learning_rate,
+                total_iters=config.num_training_steps,
+            )
+        elif lr_schedule == 'constant':
             self.scheduler = None
-
+    
     def action_selection(self, states, temp):
+       # Select actions during training (stochastic)
         with t.inference_mode():
             states = states.to(self.device)
-            # states has shape (num_envs, 4, 84, 84) or (4, 84, 84) if num_envs == 1
-            if states.dim() == 3: # If num_envs == 1, add a batch dim
+            if states.dim() == 3:
                 states = states.unsqueeze(0)
 
-            state_logits, value = self.model(states) # add batch dim, shape (1, 4, 84, 84)
+            state_logits, value = self.model(states)
         
         scaled_logits = state_logits / temp
         distributions = Categorical(logits=scaled_logits)
         actions = distributions.sample()
         log_probs = distributions.log_prob(actions)
-
        
         return actions, log_probs, value.squeeze(-1)
-    #
-    # def eval_action_selection(self, state, temp):
-    #     with t.inference_mode():
-    #         state = state.to(self.device)
-    #         logits, _ = self.model(state.unsqueeze(0))
-    #
-    #     action = t.argmax(logits, dim=-1)
-    #     return action.item()
+
     def eval_action_selection(self, state, temp):
+      # Select actions during evals - should ideally be entirely deterministic 
         with t.inference_mode():
             state = state.to(self.device)
             logits, _ = self.model(state.unsqueeze(0))
+
+        if temp == 0:
+            return t.argmax(logits, dim=-1).item()
+
         scaled_logits = logits / temp
         distribution = Categorical(logits=scaled_logits)
         action = distribution.sample()
+
         return action.item()
-    #
+    
+    def _compute_diagnostics(self, ratio, values, returns):
+        # Compute diagnostic metrics for logging
+        with t.no_grad():
+            clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
+            approx_kl = ((ratio - 1) - t.log(ratio)).mean()
+            
+            y_pred = values.squeeze()
+            y_true = returns
+            var_y = t.var(y_true)
+            explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
+            
+        return {
+            'clip_fraction': clip_fraction.item(),
+            'approx_kl': approx_kl.item(),
+            'explained_variance': explained_var.item(),
+        }
+    
     def compute_loss(self, states, actions, old_log_probs, advantages, returns, temp):
-        # Move params to correct device
+        # Compute PPO loss
         states = states.to(self.device)
         actions = actions.to(self.device)
         old_log_probs = old_log_probs.to(self.device)
@@ -67,59 +90,34 @@ class PPO:
         logits, values = self.model(states)
         scaled_logits = logits / temp
 
-        # logits - (batch_size, num_actions), values (batch_size, 1)
-
         distributions = Categorical(logits=scaled_logits)
-        new_log_probs = distributions.log_prob(actions) # shape (batch_size,)
+        new_log_probs = distributions.log_prob(actions)
 
-        old_log_probs = old_log_probs.detach() # Detach gradients
-        # Now compute the probability ratio
+        old_log_probs = old_log_probs.detach()
         ratio = t.exp(new_log_probs - old_log_probs)
-        unclipped_ratio = ratio * advantages # Unclipped surrogate objective
+        unclipped_ratio = ratio * advantages
 
-        # ratio > 1 -> old actions more likely under new policy
-        # ratio < 1 -> new actions less likely
-        # ratio = 1 -> same likelihood
-
-        # Clip probability ratio to desired range
         clipped_ratio = t.clamp(ratio, min=1-self.eps, max=1+self.eps)
-        clipped_ratio = clipped_ratio * advantages # Clipped surrogate objective
-
-        # Now take the minimum of the two ratios to get pessimistic estimate of the objective
+        clipped_ratio = clipped_ratio * advantages
 
         min_ratio = t.minimum(clipped_ratio, unclipped_ratio)
         policy_loss = -t.mean(min_ratio) 
         entropy_loss = distributions.entropy().mean()
-        # MSE loss on value-head predictions
         value_loss = t.mean((values.squeeze() - returns)**2)
-        total_loss =  policy_loss + (self.c1 * value_loss) + (self.c2 * -entropy_loss)# Total loss
+        total_loss = policy_loss + (self.c1 * value_loss) + (self.c2 * -entropy_loss)
 
-  # Return diagnostics
-        with t.no_grad():
-            # Clipping fraction
-            clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
-            
-            # Approximate KL divergence
-            approx_kl = ((ratio - 1) - t.log(ratio)).mean()
-            
-            # Explained variance
-            y_pred = values.squeeze()
-            y_true = returns
-            var_y = t.var(y_true)
-            explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
-            
-        diagnostics = {
+        diagnostics = self._compute_diagnostics(ratio, values, returns)
+        diagnostics.update({
             'policy_loss': policy_loss.item(),
             'value_loss': value_loss.item(),
-            'entropy': entropy_loss.item(),  # Positive entropy
-            'clip_fraction': clip_fraction.item(),
-            'approx_kl': approx_kl.item(),
-            'explained_variance': explained_var.item(),
-        }
+            'entropy': entropy_loss.item(),
+        })
         
         return total_loss, diagnostics
 
-    def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95, next_state=None):
+    def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95, next_state=None): #TODO: Comment this a lot better
+        # Compute GAE advantages and returns
+
         _, rewards, _, _, values, dones = buffer.get()
         assert all(i.shape == (rewards.shape[0],) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
         values = values.detach()       
@@ -156,6 +154,7 @@ class PPO:
         return advantages, returns
 
     def update(self, buffer, temp, num_epochs=5, minibatch_size=64, eps=1e-8, next_state=None):
+        # Perform a PPO update 
         self.model.train()
         advantages, returns = self.compute_advantages(buffer, next_state=next_state)
         normalized_advantages = (advantages - advantages.mean()) / (advantages.std() + eps)
@@ -192,7 +191,6 @@ class PPO:
                 )
                 total_losses.append(loss.item())
                 
-                # Accumulate diagnostics
                 for key, value in diagnostics.items():
                     all_diagnostics[key].append(value)
 
@@ -204,7 +202,6 @@ class PPO:
         if self.scheduler is not None:
             self.scheduler.step()
         
-        # Average diagnostics
         averaged_diagnostics = {
             key: np.mean(values) for key, values in all_diagnostics.items()
         }
@@ -214,13 +211,3 @@ class PPO:
 
     def get_current_lr(self):
         return self.optimizer.param_groups[0]['lr']
-    
-
-
-        
-        
-     
-
-
-
-

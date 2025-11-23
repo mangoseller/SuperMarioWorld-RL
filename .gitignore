@@ -13,3 +13,4 @@ __pycache__/
 /src/race_test.py
 /src/wandb_search/wandb/
 /src/wandb_search/__pycache__/
+src/*.pt

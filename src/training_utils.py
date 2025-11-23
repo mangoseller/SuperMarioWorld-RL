@@ -1,112 +1,38 @@
-from dataclasses import dataclass
-import os
-import wandb
 import torch as t
 from datetime import datetime
 import math
-@dataclass
-class TrainingConfig: 
-    num_envs: int
-    num_training_steps: int 
-    buffer_size: int
-    eval_freq: int
-    checkpoint_freq: int
-    show_progress: bool
 
-    # PPO Parameters
-    learning_rate: float = 1e-4
-    gamma: float = 0.9995
-    lambda_gae: float = 0.95
-    epsilon_advantage: float = 1e-8
-    clip_eps: float = 0.2
-    c1: float = 0.5 # Value loss coefficient 
-    c2: float = 0.01 # Entropy coefficient
-    epochs: int = 8 # Epochs for PPO update
-    lr_schedule: str = 'cosine'
-    min_lr: float = 1e-5
-
-    # Model Params
-    architecture = 'ImpalaSmall'
-    minibatch_size: int = 64
-
-    USE_WANDB: bool = False
-    wandb_project: str = 'marioRL'
-
-    def to_wandb_config(self):
-        return {
-            "learning_rate": self.learning_rate,
-            "gamma": self.gamma,
-            "lambda": self.lambda_gae,
-            "epsilon": self.epsilon_advantage,
-            "clip_eps": self.clip_eps,
-            "c1": self.c1,
-            "c2": self.c2,
-            "architecture": self.architecture,
-            "epochs": self.epochs,
-            "buffer_size": self.buffer_size,
-            "minibatch_size": self.minibatch_size,
-            "lr_schedule": self.lr_schedule,
-            "min_lr": self.min_lr
-        }
-
-    def setup_wandb(self):
-        if not self.USE_WANDB:
-            return
-
-        api_key = os.environ.get("WANDB_API_KEY")
-        if api_key is None:
-            raise RuntimeError("WANDB_API_KEY not set in environment")
-        wandb.login(key=api_key)
-        return wandb.init(
-            project=self.wandb_project,
-            config=self.to_wandb_config()
-        )
-    @classmethod
-    def from_wandb(cls, base_config):
-        config_dict = base_config.__dict__.copy()
-        for k, v, in wandb.config.items():
-            if hasattr(base_config, k):
-                config_dict[k] = v
-        return cls(**config_dict)
 
 def get_torch_compatible_actions(actions, num_actions=14): 
-# Convert integer actions into one-hot format for torchrl
+    # Convert integer actions into one-hot format for torchrl
     onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
     return onehot_actions
+
 
 def readable_timestamp():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+
 def get_temp(step, total_steps):
+# Temperature schedule for action sampling during training
     start_threshold = int(0.1 * total_steps)
     end_threshold = int(0.5 * total_steps)
     if step < start_threshold:
         return 1.0
     elif step < end_threshold:
-        # Exponential Decay
         progress = (step - start_threshold) / (end_threshold - start_threshold)
         return 1.0 - (0.5 * progress)
     else:
         return 0.5
-# def get_entropy(step, total_steps):
-#     start_threshold = int(0.2 * total_steps)
-#     if step < start_threshold:
-#         return 0.01
-#     else:
-#         progress = (step - start_threshold) / (total_steps - start_threshold)
-#         return max(0.0001, 0.01 * (0.0001 / 0.01) ** progress)
-#
-def get_entropy(step, total_steps):
+
+
+def get_entropy(step, total_steps, num_cycles=3, max_entropy=0.1, min_entropy=0.001, decay_power=4.0):
+
     """
-    Implements a Cyclical (Sawtooth) Entropy Schedule.
+    Cyclical entropy schedule, intended to mimic LR warm restarts.
     Spikes entropy high to break local optima, then decays aggressively
-    to allow for precision refinement.
     """
-    num_cycles = 3     
-    max_entropy = 0.1    
-    min_entropy = 0.001  
-    decay_power = 4.0   
-    
+
     cycle_length = total_steps / num_cycles
     cycle_progress = (step % cycle_length) / cycle_length
     
@@ -115,39 +41,3 @@ def get_entropy(step, total_steps):
     current_entropy = min_entropy + (max_entropy - min_entropy) * decay_factor
     
     return current_entropy
-
-# Sweep config
-SWEEPRUN_CONFIG = TrainingConfig(
-    num_envs = 6,
-    num_training_steps=5_000_000,
-    buffer_size=2048,
-    eval_freq=500_000,
-    checkpoint_freq=int(1e40),
-    USE_WANDB=True,
-    show_progress=False,
-)
-
-TRAINING_CONFIG = TrainingConfig(
-    num_envs=8,
-    num_training_steps=int(1e6),
-    buffer_size=4096,
-    eval_freq=250_000,
-    checkpoint_freq=200_000,
-    USE_WANDB=False,
-    show_progress=True,
-    learning_rate=1e-4,
-    
-)
-
-TESTING_CONFIG = TrainingConfig(
-    num_envs=1,
-    num_training_steps=300_000,
-    buffer_size=4096,
-    eval_freq= 50_000, # 100000
-    checkpoint_freq=100_000,
-    USE_WANDB=True,
-    show_progress=True,
-    c1=0.8,
-    c2=0.01, # 0.01 ? 
-    learning_rate=1e-6
-)
