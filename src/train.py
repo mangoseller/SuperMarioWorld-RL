@@ -13,7 +13,7 @@ from model_small import ImpalaSmall
 from config import TRAINING_CONFIG, TESTING_CONFIG, FINETUNE_CONFIG
 from training_helpers import (
     init_training, init_tracking, update_episode_tracking,
-    log_training_metrics, save_checkpoint
+    log_training_metrics, save_checkpoint, handle_env_resets
 )
 from evals import run_evaluation
 from training_utils import get_torch_compatible_actions, get_temp, get_entropy
@@ -62,6 +62,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
             if dones.dim() == 0:
                 dones = dones.unsqueeze(0)
 
+
         buffer.store(
             state.cpu().numpy(),
             rewards.squeeze().cpu().numpy(),
@@ -86,14 +87,9 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
             run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes, temp=0.1)
-        
-        if config.num_envs == 1:
-            if dones.item():
-                environment = env.reset()
-                state = environment["pixels"]
-        
-        state = next_state
-        
+
+        state, environment = handle_env_resets(env, environment, next_state, terminated, config.num_envs)      
+          
         if buffer.idx == buffer.capacity:
             mean_loss = policy.update(buffer, next_state=state, temp=temp)
             tracking['num_updates'] += 1

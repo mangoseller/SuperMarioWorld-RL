@@ -2,16 +2,15 @@ from dataclasses import dataclass
 import os
 import wandb
 
-
 @dataclass
 class TrainingConfig: 
     num_envs: int
     num_training_steps: int 
-    buffer_size: int
     eval_freq: int
     checkpoint_freq: int
     show_progress: bool
-
+    
+    steps_per_env: int = 4096
     learning_rate: float = 1e-4
     gamma: float = 0.9995
     lambda_gae: float = 0.95
@@ -22,13 +21,19 @@ class TrainingConfig:
     epochs: int = 8
     lr_schedule: str = 'constant'
     min_lr: float = 1e-6
-
     architecture = 'ImpalaSmall'
-    minibatch_size: int = 64
-
     USE_WANDB: bool = False
     wandb_project: str = 'marioRL'
-
+    
+    
+    @property
+    def buffer_size(self):
+        return self.steps_per_env * self.num_envs
+    
+    @property
+    def minibatch_size(self):
+        return max(32, self.buffer_size // 32)
+    
     def to_wandb_config(self):
         return {
             "learning_rate": self.learning_rate,
@@ -40,16 +45,16 @@ class TrainingConfig:
             "c2": self.c2,
             "architecture": self.architecture,
             "epochs": self.epochs,
-            "buffer_size": self.buffer_size,
+            "buffer_size": self.buffer_size, 
             "minibatch_size": self.minibatch_size,
             "lr_schedule": self.lr_schedule,
-            "min_lr": self.min_lr
+            "min_lr": self.min_lr,
+            "steps_per_env": self.steps_per_env
         }
-
+    
     def setup_wandb(self):
         if not self.USE_WANDB:
             return
-
         api_key = os.environ.get("WANDB_API_KEY")
         if api_key is None:
             raise RuntimeError("WANDB_API_KEY not set in environment")
@@ -67,13 +72,12 @@ class TrainingConfig:
                 config_dict[k] = v
         return cls(**config_dict)
 
-
 SWEEPRUN_CONFIG = TrainingConfig(
-    num_envs=6,
+    num_envs=8,
     num_training_steps=1_000_000,
-    buffer_size=4096,
+    steps_per_env=512,  
     eval_freq=225_000,
-    checkpoint_freq=0,
+    checkpoint_freq=1000000000,
     USE_WANDB=True,
     show_progress=True,
     learning_rate=2e-5,
@@ -83,7 +87,7 @@ SWEEPRUN_CONFIG = TrainingConfig(
 TRAINING_CONFIG = TrainingConfig(
     num_envs=8,
     num_training_steps=int(1e6),
-    buffer_size=4096,
+    steps_per_env=512, 
     eval_freq=250_000,
     checkpoint_freq=200_000,
     USE_WANDB=False,
@@ -93,12 +97,12 @@ TRAINING_CONFIG = TrainingConfig(
 )
 
 TESTING_CONFIG = TrainingConfig(
-    num_envs=1,
+    num_envs=8,
     num_training_steps=1_500_000,
-    buffer_size=4096,
+    steps_per_env=512,
     eval_freq=100_000,
     checkpoint_freq=100_000,
-    USE_WANDB=True,
+    USE_WANDB=False,
     show_progress=True,
     c1=0.8,
     c2=0.01,
@@ -109,13 +113,13 @@ TESTING_CONFIG = TrainingConfig(
 FINETUNE_CONFIG = TrainingConfig(
     num_envs=1,
     num_training_steps=500_000,
-    buffer_size=4096,
+    steps_per_env=4096, 
     eval_freq=50_000,
     checkpoint_freq=50_000,
-    USE_WANDB=True,
+    USE_WANDB=False,
     show_progress=True,
     learning_rate=1e-5,
     c1=0.8,
     c2=0.00005,
-    lr_schedule= 'linear'
+    lr_schedule='linear'
 )

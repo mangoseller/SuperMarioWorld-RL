@@ -56,7 +56,7 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     RewardSum(),
   ]))
 
-
+#
 def make_training_env(num_envs=1):
     if num_envs == 1:
         return prepare_env(
@@ -75,3 +75,4 @@ def make_training_env(num_envs=1):
         render_mode='rgb_array' # human doesn't work for parallel envs
     ))
 )
+

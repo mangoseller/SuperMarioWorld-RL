@@ -96,3 +96,49 @@ def save_checkpoint(agent, tracking, config, run, step):
         run.log_artifact(artifact)
     
     tracking['last_checkpoint'] = step
+
+
+
+def handle_env_resets(env, environment, next_state, terminated, num_envs):
+    # Handle environment resets for both single and parallel environments in TorchRL.
+    
+    if num_envs == 1:
+        # Single environment case
+        if terminated.item():
+            environment = env.reset()
+            state = environment["pixels"]
+            if state.dim() == 3:
+                state = state.unsqueeze(0)
+        else:
+            state = next_state
+    else:
+        # Parallel environments case
+        # Extract done mask: [num_envs]
+        done_mask = terminated.squeeze(-1) if terminated.dim() > 1 else terminated
+        
+        if done_mask.any():
+            # Create a TensorDict with _reset key for done environments
+            reset_td = environment.clone()
+            # Set _reset with shape [num_envs, 1] as expected by TorchRL
+            reset_td["_reset"] = done_mask.unsqueeze(-1)
+            
+            # Reset only the done environments
+            reset_output = env.reset(reset_td)
+            
+            # Get the pixels from the reset output
+            reset_pixels = reset_output["pixels"]
+            
+            # Update state: use reset pixels for done envs, next_state for others
+            # Broadcast done_mask to match pixel dimensions [num_envs, C, H, W]
+            state = t.where(
+                done_mask.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1),
+                reset_pixels,
+                next_state
+            )
+            
+            # Update environment reference for consistency
+            environment = reset_output
+        else:
+            state = next_state
+    
+    return state, environment
