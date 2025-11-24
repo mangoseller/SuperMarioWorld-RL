@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 def readable_timestamp():
-    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return datetime.now().strftime("%H-%M_%d-%m-%y")
 
 def init_training(agent, config, device):
     # Initialize PPO policy, buffer, environment, and get initial state

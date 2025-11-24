@@ -1,20 +1,11 @@
 import warnings
-# Ignore CUDA/NVML warnings
-warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning)
 
-# Ignore Deprecated NumPy conversion (removed module constraint to ensure it catches)
-warnings.filterwarnings('ignore', message=".*Conversion of an array with ndim > 0 to a scalar is deprecated.*", category=DeprecationWarning)
-
-# Ignore Tensor copy construction warning
-warnings.filterwarnings('ignore', message=".*To copy construct from a tensor.*", category=UserWarning)
-
-# Ignore Video overwriting warning
-# warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", category=UserWarning)
-# warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning, module="torch.cuda")
-# warnings.filterwarnings('ignore', message="Conversion of an array with ndim > 0 to a scalar is deprecated", 
-#                        category=DeprecationWarning, module="torchrl.envs.libs.gym")
-# warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", 
-#                        category=UserWarning, module="gymnasium.wrappers.rendering")
+warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", category=UserWarning)
+warnings.filterwarnings('ignore', message="Can't initialize NVML", category=UserWarning, module="torch.cuda")
+warnings.filterwarnings('ignore', message="Conversion of an array with ndim > 0 to a scalar is deprecated", 
+                       category=DeprecationWarning, module="torchrl.envs.libs.gym")
+warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", 
+                    category=UserWarning, module="gymnasium.wrappers.rendering")
 
 import torch as t 
 import numpy as np
@@ -58,7 +49,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     pbar = tqdm(range(config.num_training_steps), disable=not config.show_progress)
     
     for step in pbar:
-        policy.c2 = get_entropy(step, total_steps=config.num_training_steps) 
+        policy.c2 = get_entropy(step, total_steps=config.num_training_steps, max_entropy=config.c2) 
         
         actions, log_probs, values = policy.action_selection(state)
         environment["action"] = get_torch_compatible_actions(actions)
@@ -119,7 +110,8 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
             if step - tracking['last_checkpoint'] >= config.checkpoint_freq:
                 save_checkpoint(agent, tracking, config, run, step)
                 print(f"Model checkpoint saved at step {step}")
-
+    else:
+        env.close()
     # Perform final evaluation and store last weights
     run_evaluation(ImpalaSmall, policy, tracking, config, run, num_eval_episodes)
     save_checkpoint(agent, tracking, config, run, step)
@@ -133,12 +125,12 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     return agent
 
 
-def train(model, config, num_eval_episodes=6):
+def train(model, config, num_eval_episodes=9):
     agent = model()
     return training_loop(agent, config, num_eval_episodes)
 
 
-def finetune(model, checkpoint_path, config, num_eval_episodes=5):
+def finetune(model, checkpoint_path, config, num_eval_episodes=9):
     agent = model()
     return training_loop(agent, config, num_eval_episodes, checkpoint_path=checkpoint_path)
 

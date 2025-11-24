@@ -97,9 +97,10 @@ class PPO:
         
         return total_loss, diagnostics
 
-    def compute_advantages(self, buffer, gamma=0.99, lambda_=0.95, next_state=None): #TODO: Comment this a lot better
+    def compute_advantages(self, buffer, next_state=None): #TODO: Comment this a lot better
         # Compute GAE advantages and returns
-
+        gamma = self.config.gamma
+        lambda_ = self.config.lambda_gae
         _, rewards, _, _, values, dones = buffer.get()
         assert all(i.shape == (rewards.shape[0],) for i in [rewards, values, dones]), "Tensors are of unexpected shape!"
         values = values.detach()       
@@ -160,8 +161,8 @@ class PPO:
             advantages = normalized_advantages[permuted_indices]
             returns = returns[permuted_indices]
 
-            for start_idx in range(0, len(buffer), minibatch_size):
-                end_idx = min(start_idx + minibatch_size, len(buffer))
+            for start_idx in range(0, states.shape[0], minibatch_size):
+                end_idx = min(start_idx + minibatch_size, states.shape[0])
                 mb_states = states[start_idx:end_idx]
                 mb_actions = actions[start_idx:end_idx]
                 mb_log_probs = log_probs[start_idx:end_idx]

@@ -72,19 +72,6 @@ class TrainingConfig:
                 config_dict[k] = v
         return cls(**config_dict)
 
-SWEEPRUN_CONFIG = TrainingConfig(
-    num_envs=8,
-    num_training_steps=1_000_000,
-    steps_per_env=512,  
-    eval_freq=225_000,
-    checkpoint_freq=1000000000,
-    USE_WANDB=True,
-    show_progress=True,
-    learning_rate=2e-5,
-    lr_schedule='cosine'
-)
-
-
 TRAINING_CONFIG = TrainingConfig(
     num_envs=1,
     num_training_steps=int(1.5e6),
@@ -96,26 +83,42 @@ TRAINING_CONFIG = TrainingConfig(
     learning_rate=2e-5,
     lr_schedule='linear'
 )
+
 TESTING_CONFIG = TrainingConfig(
-    num_envs=8,
-    num_training_steps=1_500_000,
-    steps_per_env=512,
-    eval_freq=100_000,
-    checkpoint_freq=100_000,
+    num_envs=12,
+    num_training_steps=1_250_000,
+    steps_per_env=4096,
+    eval_freq=200_000,
+    checkpoint_freq=125_000,
     USE_WANDB=False,
     show_progress=True,
     c1=0.8,
     c2=0.01,
     learning_rate=2e-5,
-    lr_schedule='linear'
+    lr_schedule='cosine'
+)
+
+SWEEPRUN_CONFIG = TrainingConfig(
+    num_envs=1,
+    num_training_steps=800_000, 
+    steps_per_env=4096,         
+    eval_freq=80_000,
+    checkpoint_freq=100_000_000,
+    USE_WANDB=True,
+    show_progress=True,
+    learning_rate=2e-5, 
+    c1=0.5,
+    c2=0.01,               
+    gamma=0.99,
+    lr_schedule='cosine'
 )
 
 FINETUNE_CONFIG = TrainingConfig(
-    num_envs=1,
+    num_envs=12,
     num_training_steps=500_000,
     steps_per_env=4096, 
-    eval_freq=50_000,
-    checkpoint_freq=50_000,
+    eval_freq=1,
+    checkpoint_freq=1000000,
     USE_WANDB=False,
     show_progress=True,
     learning_rate=1e-5,

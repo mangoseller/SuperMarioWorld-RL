@@ -160,7 +160,7 @@ class LevelCompleteReward:
         pass
     
     def calculate(self, info):
-        level_complete = info.get('level_complete', 80) 
+        level_complete = info.get('level_complete', 80)
         if level_complete != 80:
             return self.reward
         return 0.0

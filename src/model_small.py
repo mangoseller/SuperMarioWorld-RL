@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 class ImpalaSmall(nn.Module):
-    def __init__(self, num_actions=13):
+    def __init__(self, num_actions=14):
         super().__init__()
         self.conv1 = nn.Conv2d(
             in_channels=4,
