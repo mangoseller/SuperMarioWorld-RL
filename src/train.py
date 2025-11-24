@@ -100,12 +100,12 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
             })
     
         if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
-            run_evaluation(agent, policy, tracking, config, run, num_eval_episodes)
+            run_evaluation(agent.__class__, policy, tracking, config, run, num_eval_episodes)
 
         state, environment = handle_env_resets(env, environment, next_state, terminated, config.num_envs)      
           
         if buffer.idx == buffer.capacity:
-            mean_loss = policy.update(buffer, next_state=state)
+            mean_loss = policy.update(buffer, config, next_state=state)
             tracking['num_updates'] += 1
             
             log_training_metrics(tracking, mean_loss, policy, config, step)
@@ -120,7 +120,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
     else:
         env.close()
     # Perform final evaluation and store last weights
-    run_evaluation(agent, policy, tracking, config, run, num_eval_episodes)
+    run_evaluation(agent.__class__, policy, tracking, config, run, num_eval_episodes)
     save_checkpoint(agent, tracking, config, run, step)
     
     if config.USE_WANDB:

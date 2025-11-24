@@ -91,13 +91,15 @@ class ImpalaLike(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
         x = F.silu(self.reduce(x))
-
-        x = self.fc(self.flatten(x))
+        
+        x = self.flatten(x)
+        x = F.silu(self.fc(x))
         x = self.ln(x)
 
         return self.policy_head(x), self.value_head(x)
 
     def _initialize_weights(self):
+
         for m in self.modules():
             if isinstance(m, (nn.Conv2d, nn.Linear)):
                 nn.init.orthogonal_(m.weight, gain=np.sqrt(2))

@@ -89,7 +89,7 @@ def log_training_metrics(tracking, diagnostics, policy, config, step):
 def save_checkpoint(agent, tracking, config, run, step):
     checkpoint_dir = "model_checkpoints"
     os.makedirs(checkpoint_dir, exist_ok=True)
-    model_path = os.path.join(checkpoint_dir, f"ImpalaSmall{tracking['episode_num']}.pt")
+    model_path = os.path.join(checkpoint_dir, f"{config.architecture}_ep{tracking['episode_num']}.pt")
     t.save(agent.state_dict(), model_path)
 
     if config.USE_WANDB:

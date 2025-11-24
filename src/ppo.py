@@ -136,9 +136,11 @@ class PPO:
         returns = advantages + values
         return advantages, returns
 
-    def update(self, buffer, num_epochs=5, minibatch_size=64, eps=1e-8, next_state=None):
+    def update(self, buffer, config, eps=1e-8, next_state=None):
         # Perform a PPO update 
         self.model.train()
+        minibatch_size = config.minibatch_size
+        num_epochs = config.num_epochs
         advantages, returns = self.compute_advantages(buffer, next_state=next_state)
         normalized_advantages = (advantages - advantages.mean()) / (advantages.std() + eps)
         states, _, actions, log_probs, _, _ = buffer.get()
@@ -179,7 +181,7 @@ class PPO:
 
                 self.optimizer.zero_grad()
                 loss.backward()
-                t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.5)
                 self.optimizer.step()
                 
         if self.scheduler is not None:
