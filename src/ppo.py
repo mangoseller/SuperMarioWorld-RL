@@ -33,6 +33,7 @@ class PPO:
 
     @t.inference_mode()
     def action_selection(self, states):
+        self.model.eval() # No dropout
 
         states = states.to(self.device)
         if states.dim() == 3:

@@ -89,8 +89,87 @@ class RandomShifts(nn.Module):
         shift *= 2.0 / (h + 2 * self.pad)
 
         grid = base_grid + shift
-        return F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
+        return F.grid_sample(x, grid, padding_mode='zeros', align_corners=False, mode='nearest')
 
+
+class ImpalaLarge(nn.Module):
+
+    def __init__(self, num_actions=14, dropout=0.1):
+        super().__init__()
+
+        self.aug = RandomShifts(pad=4)
+
+        self.stem = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=3, padding=1),
+            nn.GroupNorm(num_groups=4, num_channels=32),
+            nn.SiLU()
+        )
+
+        # 32 -> 64
+        self.block1 = ModelBlock(32, 64, num_residual=2)
+
+        # 64 -> 128 
+        self.block2 = ModelBlock(64, 128, num_residual=3)
+
+        # 128 -> 256
+        self.block3 = ModelBlock(128, 256, num_residual=5)
+
+        # Query attention pooling
+        self.pool_norm = nn.LayerNorm(256)
+        self.pool_query = nn.Parameter(t.randn(1, 1, 256) * 0.02)
+        self.pool_attn = nn.MultiheadAttention(256, num_heads=8, batch_first=True)
+
+        self.trunk = nn.Sequential(
+            nn.Linear(256, 2048),
+            nn.LayerNorm(2048),
+            nn.SiLU()
+        )
+
+        self.policy_head = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(2048, 1024),
+            nn.SiLU(),
+            nn.Linear(1024, num_actions)
+        )
+
+        self.value_head = nn.Sequential(
+            nn.Linear(2048, 1024),
+            nn.SiLU(),
+            nn.Linear(1024, 1)
+    )
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
+                nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+        nn.init.orthogonal_(self.policy_head[-1].weight, gain=0.01)
+        nn.init.orthogonal_(self.value_head[-1].weight, gain=1.0)
+
+    def forward(self, x):
+        x = self.aug(x)
+        x = self.stem(x)
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+
+        # (B, 256, 11, 11) -> (B, 121, 256)
+        b, c, h, w = x.shape
+        x = x.view(b, c, h * w).permute(0, 2, 1)
+        x = self.pool_norm(x)
+
+        # Query attention
+        q = self.pool_query.expand(b, -1, -1)
+        x, _ = self.pool_attn(q, x, x)
+        x = x.squeeze(1) 
+        x = self.trunk(x)
+
+        return self.policy_head(x), self.value_head(x)
+
+    
 class ImpalaLike(nn.Module):
 
     def __init__(self, num_actions=14):

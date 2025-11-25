@@ -8,9 +8,9 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from config import TrainingConfig
-from models import ConvolutionalSmall, ImpalaLike
+from models import ConvolutionalSmall, ImpalaLike, ImpalaLarge
 from train import training_loop
-from wandb_search.sweep_config import CONV_SWEEP, IMPALA_SWEEP
+from wandb_search.sweep_config import CONV_SWEEP, IMPALA_SWEEP, IMPALA_LARGE_SWEEP
 
 
 IMPALA_SWEEP_CONFIG = TrainingConfig(
@@ -31,6 +31,7 @@ IMPALA_SWEEP_CONFIG = TrainingConfig(
     show_progress=True,
     USE_WANDB=True
 )
+
 CONV_SWEEP_CONFIG = TrainingConfig(
     architecture='ConvolutionalSmall',
     lr_schedule='cosine',
@@ -50,6 +51,26 @@ CONV_SWEEP_CONFIG = TrainingConfig(
     USE_WANDB=True
 )
 
+IMPALA_LARGE_SWEEP_CONFIG = TrainingConfig(
+    architecture='ImpalaLarge',
+    lr_schedule='linear',
+    learning_rate=1.5e-4,
+    min_lr=1e-6,
+    epochs=3,
+    clip_eps=0.2,
+    c1=0.5,
+    c2=0.02,
+    gamma=0.995,
+    lambda_gae=0.95,
+    num_envs=28,
+    steps_per_env=512,
+    num_training_steps=800_000,
+    checkpoint_freq=1_000_000,
+    eval_freq=200_000,
+    show_progress=True,
+    USE_WANDB=True
+)
+
 MODEL_CLASS = None
 BASE_CONFIG = None
 
@@ -62,23 +83,22 @@ def train_sweep(config=None):
 
 
 if __name__ == "__main__":
+    model_options = {
+        'ConvolutionalSmall': (CONV_SWEEP, CONV_SWEEP_CONFIG, ConvolutionalSmall),
+        'ImpalaLike': (IMPALA_SWEEP, IMPALA_SWEEP_CONFIG, ImpalaLike),
+        'ImpalaLarge': (IMPALA_LARGE_SWEEP, IMPALA_LARGE_SWEEP_CONFIG, ImpalaLarge),
+    }
+    
     while True:
-        model_choice = input("Select model for sweep (ConvolutionalSmall/ImpalaLike/exit): ").strip()
+        model_choice = input("Select model for sweep (ConvolutionalSmall/ImpalaLike/ImpalaLarge/exit): ").strip()
         if model_choice.lower() == 'exit':
             print("Exiting program.")
             sys.exit(0)
-        elif model_choice == 'ConvolutionalSmall':
-            sweep_config = CONV_SWEEP
-            BASE_CONFIG = CONV_SWEEP_CONFIG
-            MODEL_CLASS = ConvolutionalSmall
-            break
-        elif model_choice == 'ImpalaLike':
-            sweep_config = IMPALA_SWEEP
-            BASE_CONFIG = IMPALA_SWEEP_CONFIG
-            MODEL_CLASS = ImpalaLike
+        elif model_choice in model_options:
+            sweep_config, BASE_CONFIG, MODEL_CLASS = model_options[model_choice]
             break
         else:
-            print(f"Unrecognized model '{model_choice}'. Please choose ConvolutionalSmall or ImpalaLike.")
+            print(f"Unrecognized model '{model_choice}'. Valid options: {list(model_options.keys())}")
     
     sweep_id = wandb.sweep(
         sweep_config,
@@ -86,9 +106,8 @@ if __name__ == "__main__":
     )
     print(f"Sweep initialized with ID: {sweep_id} for model: {model_choice}")
     
-    # Start the agent to run the search
     wandb.agent(
         sweep_id,
         function=train_sweep,
-        count=10
+        count=6
     )

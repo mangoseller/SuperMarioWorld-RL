@@ -46,7 +46,11 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     agent = agent.to(device)
     policy, buffer, env, environment, state = init_training(agent, config, device)
     start_step, tracking = setup_from_checkpoint(checkpoint_path, agent, policy, config, device, resume)
-
+    param = 0
+    for name, p in agent.named_parameters():
+        param += p.numel()
+        print(name, p.numel())
+    print(f"Total Params: {param}")
     if device == "cuda":
         print(f"Training {config.architecture} on GPU")
     else:

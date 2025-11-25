@@ -73,7 +73,65 @@ class TrainingConfig:
         return cls(**config_dict)
 
 
+IMPALA_LARGE_TRAIN_CONFIG = TrainingConfig(
+    architecture='ImpalaLarge',
+    lr_schedule='linear',
+    learning_rate=1.5e-4,
+    min_lr=1e-6,
+    epochs=3,
+    clip_eps=0.2,
+    c1=0.5,
+    c2=0.02,
+    gamma=0.995,
+    lambda_gae=0.95,
+    num_envs=28,
+    steps_per_env=512,  # 28 × 512 = 14,336 batch size
+    num_training_steps=2_000_000,
+    checkpoint_freq=200_000,
+    eval_freq=150_000,
+    show_progress=True,
+    USE_WANDB=True
+)
 
+IMPALA_LARGE_TUNE_CONFIG = TrainingConfig(
+    architecture='ImpalaLarge',
+    lr_schedule='linear',
+    learning_rate=2e-5,
+    min_lr=1e-6,
+    epochs=2,
+    clip_eps=0.1,
+    c1=0.5,
+    c2=0.005,
+    gamma=0.995,
+    lambda_gae=0.95,
+    num_envs=28,
+    steps_per_env=512,
+    num_training_steps=400_000,
+    checkpoint_freq=100_000,
+    eval_freq=50_000,
+    show_progress=True,
+    USE_WANDB=True
+)
+
+IMPALA_LARGE_TEST_CONFIG = TrainingConfig(
+    architecture='ImpalaLarge',
+    lr_schedule='linear',
+    learning_rate=1.5e-4,
+    min_lr=1e-6,
+    epochs=3,
+    clip_eps=0.2,
+    c1=0.5,
+    c2=0.02,
+    gamma=0.995,
+    lambda_gae=0.95,
+    num_envs=1,
+    steps_per_env=4096,
+    num_training_steps=500_000,
+    checkpoint_freq=100_000,
+    eval_freq=100_000,
+    show_progress=True,
+    USE_WANDB=False
+)
 IMPALA_TRAIN_CONFIG = TrainingConfig(
     architecture='ImpalaLike',
     lr_schedule='linear',
