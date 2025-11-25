@@ -14,6 +14,10 @@ from wrappers import Discretizer, FrameSkipAndTermination, MaxStepWrapper
 from rewards import ComposedRewardWrapper
 from torchvision.transforms import InterpolationMode
 
+DEFAULT_LEVELS = {
+    'level1': 'YoshiIsland2',
+    'level2': 'YoshiIsland1',
+}
 
 MARIO_ACTIONS = [
     [],                   # Do nothing
@@ -32,6 +36,25 @@ MARIO_ACTIONS = [
     ['A'],                # Spin Jump
 ]
 
+def compute_level_distribution(num_envs, **level_kwargs):
+    """Distribute environments uniformly across specified levels.
+      Usage: compute_level_distribution(16, level1='YoshiIsland2', level2='YoshiIsland1', level3='DonutPlains1')
+    """
+    levels = level_kwargs if level_kwargs else DEFAULT_LEVELS
+    level_list = list(levels.values())
+    num_levels = len(level_list)
+    
+    # Distribute as uniformly as possible
+    base_count = num_envs // num_levels
+    remainder = num_envs % num_levels
+    
+    distribution = []
+    for i, level in enumerate(level_list):
+        # Give one extra env to the first 'remainder' levels
+        count = base_count + (1 if i < remainder else 0)
+        distribution.extend([level] * count)
+    
+    return distribution
 
 def prepare_env(env, skip=2, record=False, record_dir=None):
     wrapped_env = Discretizer(env, MARIO_ACTIONS)
@@ -56,19 +79,17 @@ def prepare_env(env, skip=2, record=False, record_dir=None):
     StepCounter(),
     RewardSum(),
   ]))
-
-_compute_level_distribution = lambda num_envs: ['YoshiIsland2' for _ in range(num_envs // 2)] + ['YoshiIsland1' for _ in range(num_envs // 2)]
  
-def make_training_env(num_envs=1):
+def make_training_env(num_envs=1, **level_kwargs):
     if num_envs == 1:
         return prepare_env(
             retro.make(
             'SuperMarioWorld-Snes',
-            state='YoshiIsland2', # YoshiIsland2
+            state='DonutPlains5', # YoshiIsland2
             render_mode='human', # Change to 'rgb_array' when debugging finished,
         ))
     else:
-        level_dist = _compute_level_distribution(num_envs)
+        level_dist = compute_level_distribution(num_envs, **level_kwargs)
         create_env = lambda level: prepare_env(
             retro.make(
                 'SuperMarioWorld-Snes',
@@ -79,6 +100,5 @@ def make_training_env(num_envs=1):
         return ParallelEnv(
             num_workers=num_envs,
             create_env_fn=create_env,
-            create_env_kwargs=[{'level': state} for state in _compute_level_distribution(num_envs)]
+            create_env_kwargs=[{'level': state} for state in level_dist]
         )
-

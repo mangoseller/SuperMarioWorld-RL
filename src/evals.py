@@ -100,7 +100,7 @@ def eval_parallel_safe(model, policy, config, record_dir, num_episodes=5):
     return result_queue.get()
 
 
-def run_evaluation(model, policy, tracking, config, run, episodes):
+def run_evaluation(model, policy, tracking, config, run, step, episodes):
     # Run evaluation and log results to wandb - used in main training calls
     eval_timestamp = readable_timestamp()
     run_dir = f'evals/run_{tracking["run_timestamp"]}'
@@ -117,4 +117,4 @@ def run_evaluation(model, policy, tracking, config, run, episodes):
         vids.add_dir(eval_dir)
         run.log_artifact(vids)
 
-    tracking['last_eval_steps'] = tracking['total_env_steps']
+    tracking['last_eval_step'] = step

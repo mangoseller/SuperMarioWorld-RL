@@ -35,7 +35,7 @@ def init_tracking(config):
         'episode_num': 0,
         'last_checkpoint': 0,
         'total_env_steps': 0,
-        'last_eval_steps': 0,
+        'last_eval_step': 0,
         'run_timestamp': readable_timestamp()
     }
 
@@ -85,18 +85,57 @@ def log_training_metrics(tracking, diagnostics, policy, config, step):
     if config.USE_WANDB:
         wandb.log(metrics, step=step)
 
-def save_checkpoint(agent, tracking, config, run, step):
+def save_checkpoint(agent, policy, tracking, config, run, step):
+
     checkpoint_dir = "model_checkpoints"
     os.makedirs(checkpoint_dir, exist_ok=True)
+    checkpoint = {
+        'model_state_dict': agent.state_dict(),
+        'optimizer_state_dict': policy.optimizer.state_dict(),
+        'scheduler_state_dict': policy.scheduler.state_dict() if policy.scheduler else None,
+        'step': step,
+        'tracking': tracking,
+        'config_dict': {
+            'architecture': config.architecture,
+            'num_training_steps': config.num_training_steps,
+            'learning_rate': config.learning_rate,
+            'min_lr': config.min_lr,
+            'lr_schedule': config.lr_schedule,
+            'c2': config.c2,  # Max entropy for decay calculation
+        }
+    }
+
     model_path = os.path.join(checkpoint_dir, f"{config.architecture}_ep{tracking['episode_num']}.pt")
-    t.save(agent.state_dict(), model_path)
+    t.save(checkpoint, model_path)
 
     if config.USE_WANDB:
+
         artifact = wandb.Artifact(f"marioRLep{tracking['episode_num']}", type="model")
         artifact.add_file(model_path)
         run.log_artifact(artifact)
     
     tracking['last_checkpoint'] = step
+
+    return model_path
+
+def load_checkpoint(checkpoint_path, agent, policy, device):
+    
+    checkpoint = t.load(checkpoint_path, map_location=device)
+    agent.load_state_dict(checkpoint['model_state_dict'])
+    policy.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    if checkpoint['scheduler_state_dict'] and policy.scheduler:
+        policy.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    
+    start_step = checkpoint['step']
+    tracking = checkpoint['tracking']
+    
+    config_dict = checkpoint.get('config_dict', {})
+    max_entropy = config_dict.get('c2', 0.02)
+    total_steps = config_dict.get('num_training_steps', 1_000_000)
+    policy.c2 = get_entropy(start_step, total_steps, max_entropy=max_entropy)
+    
+    return start_step, tracking
 
 def handle_env_resets(env, environment, next_state, terminated, num_envs): # TODO: Fix this up
 
@@ -172,3 +211,26 @@ def get_entropy(step, total_steps, max_entropy=0.02, min_entropy=0.005):
        progress = step / total_steps
        current_entropy = max_entropy - (max_entropy - min_entropy) * progress
        return current_entropy
+
+
+def setup_from_checkpoint(checkpoint_path, agent, policy, config, device, resume=False):
+
+    if checkpoint_path is None:
+        return 0, init_tracking(config)
+    
+    if resume:
+        print(f"Resuming training from {checkpoint_path}")
+        start_step, tracking = load_checkpoint(checkpoint_path, agent, policy, device)
+        tracking['run_timestamp'] = readable_timestamp()
+        print(f"Resumed at step {start_step}, episode {tracking['episode_num']}")
+        return start_step, tracking
+    else:
+        print(f"Loading weights from {checkpoint_path}")
+        weights = t.load(checkpoint_path, map_location=device)
+        # Handle both old (raw state_dict) and new (full checkpoint) formats
+        if 'model_state_dict' in weights:
+            agent.load_state_dict(weights['model_state_dict'])
+        else:
+            agent.load_state_dict(weights)
+
+        return 0, init_tracking(config)

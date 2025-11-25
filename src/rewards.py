@@ -4,9 +4,9 @@ import gymnasium as gym
 REWARD_CONFIG = {
     'movement_reward': 0.01,
     'step_penalty': 0.001,
-    'damage_penalty': 0.5,
-    'life_loss_penalty': -5.0,
-    'max_steps_penalty': -10.0,
+    'damage_penalty': 1,
+    'life_loss_penalty': 5.0,
+    'max_steps_penalty': 15.0,
     'coin_reward': 0.3,
     'score_reward': 0.001,
     'midway_reward': 20.0,
@@ -194,9 +194,9 @@ class ComposedRewardWrapper(gym.Wrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
         
         reward -= self.step_penalty
+        reward -= self.components['damage'].calculate(info, terminated=terminated)
+        reward -= self.components['life_loss'].calculate(info)
         reward += self.components['movement'].calculate(info)
-        reward += self.components['damage'].calculate(info, terminated=terminated)
-        reward += self.components['life_loss'].calculate(info)
         reward += self.components['coins'].calculate(info)
         reward += self.components['score'].calculate(info)
         reward += self.components['midway'].calculate(info)

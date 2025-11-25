@@ -23,6 +23,9 @@ from utils import (
     handle_env_resets,
     get_torch_compatible_actions,
     get_entropy,
+    readable_timestamp,
+    load_checkpoint,
+    setup_from_checkpoint
 )
 
 from config import (
@@ -36,17 +39,14 @@ from config import (
 
 
 
-def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
+def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resume=False):
+
     run = config.setup_wandb()
     device = "cuda" if t.cuda.is_available() else "cpu"
     agent = agent.to(device)
-    if checkpoint_path:
-        print(f"Loading checkpoint from {checkpoint_path}")
-        weights = t.load(checkpoint_path, map_location=device)
-        agent.load_state_dict(weights)
-    
     policy, buffer, env, environment, state = init_training(agent, config, device)
-    
+    start_step, tracking = setup_from_checkpoint(checkpoint_path, agent, policy, config, device, resume)
+
     if device == "cuda":
         print(f"Training {config.architecture} on GPU")
     else:
@@ -99,8 +99,8 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
                 'c2': f"{policy.c2:.4f}",
             })
     
-        if tracking['total_env_steps'] - tracking['last_eval_steps'] >= config.eval_freq:
-            run_evaluation(agent.__class__, policy, tracking, config, run, num_eval_episodes)
+        if step - tracking['last_eval_step']  >= config.eval_freq:
+            run_evaluation(agent.__class__, policy, tracking, config, run, step, num_eval_episodes)
 
         state, environment = handle_env_resets(env, environment, next_state, terminated, config.num_envs)      
           
@@ -115,13 +115,13 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None):
             buffer.clear()
             
             if step - tracking['last_checkpoint'] >= config.checkpoint_freq:
-                save_checkpoint(agent, tracking, config, run, step)
+                save_checkpoint(agent, policy, tracking, config, run, step)
                 print(f"Model checkpoint saved at step {step}")
     else:
         env.close()
     # Perform final evaluation and store last weights
-    run_evaluation(agent.__class__, policy, tracking, config, run, num_eval_episodes)
-    save_checkpoint(agent, tracking, config, run, step)
+    run_evaluation(agent.__class__, policy, step, tracking, config, run, num_eval_episodes)
+    save_checkpoint(agent, tracking, config, step, run, step)
     
     if config.USE_WANDB:
         import wandb
@@ -140,6 +140,10 @@ def train(model, config, num_eval_episodes=9):
 def finetune(model, checkpoint_path, config, num_eval_episodes=9):
     agent = model()
     return training_loop(agent, config, num_eval_episodes, checkpoint_path=checkpoint_path)
+
+def resume(model, checkpoint_path, config, num_eval_episodes=9):
+    agent = model()
+    return training_loop(agent, config, num_eval_episodes, checkpoint_path=checkpoint_path, resume=True)
 
 if __name__ == "__main__":
     run_training()
