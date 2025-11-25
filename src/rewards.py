@@ -6,7 +6,7 @@ REWARD_CONFIG = {
     'step_penalty': 0.001,
     'damage_penalty': 0.5,
     'life_loss_penalty': -5.0,
-    'max_steps_penalty': -25.0,
+    'max_steps_penalty': -10.0,
     'coin_reward': 0.3,
     'score_reward': 0.001,
     'midway_reward': 20.0,

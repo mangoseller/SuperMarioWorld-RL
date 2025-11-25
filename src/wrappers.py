@@ -61,7 +61,7 @@ class FrameSkipAndTermination(gym.Wrapper):
 
 class MaxStepWrapper(gym.Wrapper):
 
-    def __init__(self, env, max_steps=9000):
+    def __init__(self, env, max_steps=85000):
         super().__init__(env)
         self.max_steps = max_steps
         self.step_count = 0
