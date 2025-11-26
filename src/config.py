@@ -86,11 +86,11 @@ TRANSPALA_TRAIN_CONFIG = TrainingConfig(
     lambda_gae=0.95,
     num_envs=28,
     steps_per_env=512,  # 28 × 512 = 14,336 batch size
-    num_training_steps=2_000_000,
+    num_training_steps=200,
     checkpoint_freq=200_000,
     eval_freq=150_000,
     show_progress=True,
-    USE_WANDB=True
+    USE_WANDB=False
 )
 
 TRANSPALA_TUNE_CONFIG = TrainingConfig(
@@ -143,7 +143,7 @@ IMPALA_TRAIN_CONFIG = TrainingConfig(
     c2=0.02,
     num_envs=16,
     steps_per_env=512,
-    num_training_steps=2_000_000,
+    num_training_steps=2000,
     checkpoint_freq=100_000,
     eval_freq=100_000,
     show_progress=True,

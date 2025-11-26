@@ -1,4 +1,3 @@
-
 import warnings
 
 warnings.filterwarnings('ignore', message=".*Overwriting existing videos.*", category=UserWarning)
@@ -34,27 +33,7 @@ from curriculum import (
 )
 
 
-def get_env_specs(num_envs=1):
-    """
-    [FIX] Helper to retrieve environment specifications.
-    Creates a single dummy environment to extract specs, then closes it immediately.
-    These specs are used to initialize ParallelEnvs without triggering Retro errors.
-    """
-    print("Pre-loading environment specs...")
-    dummy_env = make_env(num_envs=1)
-    
-    specs = {
-        'observation_spec': dummy_env.observation_spec,
-        'action_spec': dummy_env.action_spec,
-        'reward_spec': dummy_env.reward_spec,
-        'done_spec': dummy_env.done_spec,
-    }
-    
-    dummy_env.close()
-    return specs
-
-
-def create_env_from_curriculum(curriculum_state, config, render_human=False, specs=None):
+def create_env_from_curriculum(curriculum_state, config, render_human=False):
     """
     Create environment with level distribution from current curriculum phase.
     """
@@ -65,23 +44,22 @@ def create_env_from_curriculum(curriculum_state, config, render_human=False, spe
         num_envs=config.num_envs,
         level_distribution=level_dist,
         render_human=render_human and config.num_envs == 1,
-        specs=specs  # [FIX] Pass specs to avoid dummy creation
     )
     
     return env, level_dist
 
 
-def transition_curriculum_phase(env, curriculum_state, config, device, specs=None):
+def transition_curriculum_phase(env, curriculum_state, config, device):
     """
     Handle transition to a new curriculum phase.
     """
     env.close()
     
-    new_env, level_dist = create_env_from_curriculum(curriculum_state, config, specs=specs)
+    new_env, level_dist = create_env_from_curriculum(curriculum_state, config)
     
     print(f"\n{'='*60}")
     print(f"CURRICULUM TRANSITION: {curriculum_state.get_description()}")
-    print(f"Level distribution: {level_dist}")
+    # print(f"Level distribution: {level_dist}")
     print(f"{'='*60}\n")
     
     environment = new_env.reset()
@@ -92,7 +70,7 @@ def transition_curriculum_phase(env, curriculum_state, config, device, specs=Non
     return new_env, environment, state
 
 
-def init_training_components(agent, config, device, curriculum_state=None, specs=None):
+def init_training_components(agent, config, device, curriculum_state=None):
     """
     Initialize all training components: policy, buffer, environment.
     """
@@ -100,12 +78,7 @@ def init_training_components(agent, config, device, curriculum_state=None, specs
     buffer = RolloutBuffer(config.buffer_size // config.num_envs, config.num_envs, device)
     
     if curriculum_state is not None:
-        env, level_dist = create_env_from_curriculum(
-            curriculum_state, 
-            config, 
-            render_human=(config.num_envs == 1),
-            specs=specs
-        )
+        env, level_dist = create_env_from_curriculum(curriculum_state, config, render_human=(config.num_envs == 1))
         print(f"\n{'='*60}")
         print(f"CURRICULUM LEARNING ENABLED")
         print(f"Starting with: {curriculum_state.get_description()}")
@@ -115,7 +88,6 @@ def init_training_components(agent, config, device, curriculum_state=None, specs
         env = make_env(
             num_envs=config.num_envs,
             render_human=(config.num_envs == 1),
-            specs=specs
         )
     
     environment = env.reset()
@@ -134,10 +106,6 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     device = "cuda" if t.cuda.is_available() else "cpu"
     agent = agent.to(device)
     
-    # [FIX] Get specs once at the start to avoid "multiple emulator instances" error
-    # This prevents ParallelEnv from creating a dummy retro environment in the main process
-    env_specs = get_env_specs() if config.num_envs > 1 else None
-
     # Initialize curriculum if enabled
     curriculum_state = None
     if config.use_curriculum:
@@ -148,7 +116,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     
     # Initialize training components
     policy, buffer, env, environment, state = init_training_components(
-        agent, config, device, curriculum_state, specs=env_specs
+        agent, config, device, curriculum_state
     )
     
     # Handle checkpoint loading
@@ -165,7 +133,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
             
             if curriculum_state.current_phase != 0:
                 env, environment, state = transition_curriculum_phase(
-                    env, curriculum_state, config, device, specs=env_specs
+                    env, curriculum_state, config, device
                 )
     else:
         tracking = init_tracking(config)
@@ -183,9 +151,12 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
         if curriculum_state is not None:
             if curriculum_state.check_phase_transition(step, config.num_training_steps):
                 env, environment, state = transition_curriculum_phase(
-                    env, curriculum_state, config, device, specs=env_specs
+                    env, curriculum_state, config, device
                 )
                 buffer.clear()
+                # Reset current stats on transition
+                tracking['current_episode_rewards'] = [0.0] * config.num_envs
+                tracking['current_episode_lengths'] = [0] * config.num_envs
         
         # Entropy decay
         policy.c2 = get_entropy(step, total_steps=config.num_training_steps, max_entropy=config.c2)
@@ -280,7 +251,6 @@ def train(model, config, num_eval_episodes=9, curriculum_option=None):
     agent = model()
     return training_loop(agent, config, num_eval_episodes, curriculum_option=curriculum_option)
 
-
 def finetune(model, checkpoint_path, config, num_eval_episodes=9, curriculum_option=None):
     """Load weights from checkpoint but start training fresh (step 0)."""
     agent = model()
@@ -295,3 +265,4 @@ def resume(model, checkpoint_path, config, num_eval_episodes=9, curriculum_optio
 
 if __name__ == "__main__":
     run_training()
+

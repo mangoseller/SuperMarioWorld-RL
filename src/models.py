@@ -43,27 +43,27 @@ class TransPala(nn.Module):
         # Attention pooling
         self.pool = SpatialAttentionPool(256, num_heads=8, dropout=dropout)
 
+        # [MODIFIED] Reduced trunk size from 2048 to 1024
         self.trunk = nn.Sequential(
-            nn.Linear(256, 2048),
-            nn.LayerNorm(2048),
+            nn.Linear(256, 1024),
+            nn.LayerNorm(1024),
             nn.SiLU()
         )
 
         self.policy_head = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(2048, 1024),
+            nn.Linear(1024, 512),
             nn.SiLU(),
-            nn.Linear(1024, num_actions)
+            nn.Linear(512, num_actions)
         )
 
         self.value_head = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(1024, 512),
             nn.SiLU(),
-            nn.Linear(1024, 1)
+            nn.Linear(512, 1)
         )
         
-        # Pixel control auxiliary head
-        self.pixel_control_head = PixelControlHead(2048, grid_size=7)
+        self.pixel_control_head = PixelControlHead(1024, grid_size=7)
         
         self._init_weights()
 
@@ -104,7 +104,10 @@ class TransPala(nn.Module):
     
 
 class ImpalaLike(nn.Module):
-    """Smaller version for lighter training"""
+    """
+    Smaller version for lighter training.
+    Updated to include TransPala features (SpatialAttention, PixelControl) while remaining lean.
+    """
     def __init__(self, num_actions=14, dropout=0.1):
         super().__init__()
         
@@ -113,18 +116,13 @@ class ImpalaLike(nn.Module):
 
         self.block1 = ModelBlock(16, 32, num_residual=2)
         self.block2 = ModelBlock(32, 64, num_residual=2)
-        self.block3 = ModelBlock(64, 128, num_residual=2)
+        
+        self.block3 = ModelBlock(64, 128, num_residual=2, use_spatial_attention=True)
         
         self.embed_dim = 128
-        self.pool_norm = nn.LayerNorm(self.embed_dim)
-        # Legacy: ImpalaLike uses static query
-        self.pool_query = nn.Parameter(t.randn(1, 1, self.embed_dim) * 0.02)
-        self.pool_attn = nn.MultiheadAttention(
-            embed_dim=self.embed_dim,
-            num_heads=4,
-            batch_first=True,
-            dropout=dropout
-        )
+        
+        # Replaced static query attention with TransPala's smarter SpatialAttentionPool
+        self.pool = SpatialAttentionPool(self.embed_dim, num_heads=4, dropout=dropout)
 
         self.trunk = nn.Sequential(
             nn.Linear(self.embed_dim, 512),
@@ -141,10 +139,12 @@ class ImpalaLike(nn.Module):
             nn.SiLU(),
             nn.Linear(256, 1)
         )
+        
+        self.pixel_control_head = PixelControlHead(512, grid_size=7)
 
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x, return_pixel_control=False):
         x = self.aug(x)
         x = self.coord_conv(x) 
 
@@ -152,16 +152,21 @@ class ImpalaLike(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
 
+        # (B, 128, H, W) -> (B, H*W, 128)
         b, c, h, w = x.shape
         x = x.view(b, c, h * w).permute(0, 2, 1)
-        x = self.pool_norm(x)
-
-        q = self.pool_query.expand(b, -1, -1)
-        x, _ = self.pool_attn(q, x, x)
-        x = x.squeeze(1)
-
+        
+        x = self.pool(x)
         x = self.trunk(x)
-        return self.policy_head(x), self.value_head(x)
+        
+        policy = self.policy_head(x)
+        value = self.value_head(x)
+        
+        if return_pixel_control:
+            pixel_pred = self.pixel_control_head(x)
+            return policy, value, pixel_pred
+
+        return policy, value
         
     def _initialize_weights(self):
         for m in self.modules():
@@ -171,6 +176,8 @@ class ImpalaLike(nn.Module):
                     nn.init.constant_(m.bias, 0)
         nn.init.orthogonal_(self.policy_head[-1].weight, gain=0.01)
         nn.init.orthogonal_(self.value_head[-1].weight, gain=1.0)
+        # [MODIFIED] Init for pixel control
+        nn.init.orthogonal_(self.pixel_control_head.spatial[-2].weight, gain=1.0)
 
 
 class ConvolutionalSmall(nn.Module):
