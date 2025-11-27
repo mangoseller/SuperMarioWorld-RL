@@ -208,8 +208,8 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
             
         # Checkpointing
         if step - tracking['last_checkpoint'] >= config.checkpoint_freq:
-                save_checkpoint(agent, policy, tracking, config, run, step)
-                print(f"Model checkpoint saved at step {step}")
+            save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option=curriculum_option)
+            print(f"Model checkpoint saved at step {step}")
     
         # Evaluation
         if step - tracking['last_eval_step'] >= config.eval_freq:
@@ -235,7 +235,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     
     # Final evaluation and checkpoint
     run_evaluation(agent.__class__, policy, tracking, config, run, step, num_eval_episodes, curriculum_state)
-    save_checkpoint(agent, policy, tracking, config, run, step)
+    save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option=curriculum_option)
 
     if config.USE_WANDB:
         import wandb
@@ -251,6 +251,7 @@ def train(model, config, num_eval_episodes=9, curriculum_option=None):
     agent = model()
     return training_loop(agent, config, num_eval_episodes, curriculum_option=curriculum_option)
 
+
 def finetune(model, checkpoint_path, config, num_eval_episodes=9, curriculum_option=None):
     """Load weights from checkpoint but start training fresh (step 0)."""
     agent = model()
@@ -265,4 +266,3 @@ def resume(model, checkpoint_path, config, num_eval_episodes=9, curriculum_optio
 
 if __name__ == "__main__":
     run_training()
-

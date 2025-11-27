@@ -9,7 +9,8 @@ from datetime import datetime
 
 
 def readable_timestamp():
-    return datetime.now().strftime("%H-%M_%d-%m-%y")
+    """Timestamp for run directories: DD-MM_HH-MM"""
+    return datetime.now().strftime("%d-%m_%H-%M")
 
 
 def init_training(agent, config, device):
@@ -98,7 +99,7 @@ def log_training_metrics(tracking, diagnostics, policy, config, step):
         wandb.log(metrics, step=step)
 
 
-def save_checkpoint(agent, policy, tracking, config, run, step):
+def save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option=None):
     """Save model checkpoint and optionally log to wandb."""
     checkpoint_dir = "model_checkpoints"
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -116,6 +117,8 @@ def save_checkpoint(agent, policy, tracking, config, run, step):
             'min_lr': config.min_lr,
             'lr_schedule': config.lr_schedule,
             'c2': config.c2,
+            'use_curriculum': config.use_curriculum,
+            'curriculum_option': curriculum_option,
         }
     }
 
@@ -151,6 +154,51 @@ def load_checkpoint(checkpoint_path, agent, policy, device):
     return start_step, tracking
 
 
+def get_checkpoint_info(checkpoint_path):
+    """
+    Extract info from a checkpoint without loading model weights.
+    
+    Returns:
+        dict with keys: architecture, step, episode_num, total_steps, 
+                       use_curriculum, curriculum_option
+    """
+    checkpoint = t.load(checkpoint_path, map_location='cpu')
+    config_dict = checkpoint.get('config_dict', {})
+    tracking = checkpoint.get('tracking', {})
+    
+    return {
+        'architecture': config_dict.get('architecture'),
+        'step': checkpoint.get('step', 0),
+        'episode_num': tracking.get('episode_num', 0),
+        'total_steps': config_dict.get('num_training_steps'),
+        'use_curriculum': config_dict.get('use_curriculum', False),
+        'curriculum_option': config_dict.get('curriculum_option'),
+        'learning_rate': config_dict.get('learning_rate'),
+        'lr_schedule': config_dict.get('lr_schedule'),
+    }
+
+
+def fix_compiled_checkpoint(checkpoint_path):
+    """
+    Fix checkpoint saved with torch.compile() by stripping '_orig_mod.' prefix.
+    Modifies the file in place if needed.
+    
+    Returns:
+        True if fix was applied, False if not needed
+    """
+    checkpoint = t.load(checkpoint_path, map_location='cpu')
+    model_state = checkpoint.get('model_state_dict', {})
+    
+    if any(k.startswith('_orig_mod.') for k in model_state.keys()):
+        print(f"Detected torch.compile() checkpoint, stripping '_orig_mod.' prefix...")
+        fixed_state = {k.replace('_orig_mod.', ''): v for k, v in model_state.items()}
+        checkpoint['model_state_dict'] = fixed_state
+        t.save(checkpoint, checkpoint_path)
+        print(f"Fixed checkpoint saved to {checkpoint_path}")
+        return True
+    return False
+
+
 def setup_from_checkpoint(checkpoint_path, agent, policy, config, device, resume=False):
     """
     Setup training state from checkpoint.
@@ -168,6 +216,9 @@ def setup_from_checkpoint(checkpoint_path, agent, policy, config, device, resume
     """
     if checkpoint_path is None:
         return 0, init_tracking(config)
+    
+    # Fix compiled checkpoint if needed
+    fix_compiled_checkpoint(checkpoint_path)
     
     if resume:
         print(f"Resuming training from {checkpoint_path}")

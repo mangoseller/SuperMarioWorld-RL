@@ -12,6 +12,7 @@ import retro
 import gymnasium as gym
 import numpy as np
 import multiprocessing
+from datetime import datetime
 from gymnasium.wrappers import RecordVideo
 from wrappers import Discretizer, FrameSkipAndTermination, MaxStepWrapper
 from rewards import ComposedRewardWrapper
@@ -41,6 +42,12 @@ MARIO_ACTIONS = [
     ['UP'],               # Look up/climb
     ['A'],                # Spin Jump
 ]
+
+
+def video_timestamp():
+    """Short timestamp for video files: HH-MM-SS"""
+    return datetime.now().strftime("%H-%M-%S")
+
 
 class MockRetro(gym.Env):
     """
@@ -77,12 +84,11 @@ def _wrap_env(env, skip=2, record=False, record_dir=None):
     wrapped_env = MaxStepWrapper(wrapped_env, max_steps=8000)
     
     if record:
-        from utils import readable_timestamp
         wrapped_env = RecordVideo(
             wrapped_env,
             video_folder=record_dir,
             episode_trigger=lambda x: True,
-            name_prefix=f"eval_{readable_timestamp()}"
+            name_prefix=f"vid_{video_timestamp()}"
         )
     
     wrapped_env = GymWrapper(wrapped_env)

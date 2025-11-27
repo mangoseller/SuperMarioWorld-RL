@@ -3,11 +3,13 @@ import numpy as np
 from einops import rearrange
 
 class RolloutBuffer:
+    # Store rollout data as numpy arrays on CPU to save GPU memory 
+    # Could store all of these as uint8 if optimization is needed
     def __init__(self, capacity, num_envs, device):
-        self.states = np.zeros((capacity, num_envs, 4, 84, 84), dtype=np.float32)
+        self.states = np.zeros((capacity, num_envs, 4, 84, 84), dtype=np.float32) # Images of the environment 
         self.rewards = np.zeros((capacity, num_envs), dtype=np.float32)
         self.actions = np.zeros((capacity, num_envs), dtype=np.int64)
-        self.log_probs = np.zeros((capacity, num_envs), dtype=np.float32)
+        self.log_probs = np.zeros((capacity, num_envs), dtype=np.float32) # Probabilities of actions taken
         self.values = np.zeros((capacity, num_envs), dtype=np.float32)
         self.dones = np.zeros((capacity, num_envs), dtype=np.float32)
         self.idx = 0
@@ -31,7 +33,7 @@ class RolloutBuffer:
         if self.idx == 0:
             raise ValueError("Buffer is empty!")
         
-        # Flatten buffers into 1d Pytorch tensor on the GPU
+        # Flatten buffers into 1d Pytorch tensor for sending to the GPU
         prep_tensor = lambda buf: t.from_numpy(rearrange(buf[:self.idx], 'n ... -> (n ...)')).to(self.device) 
 
         reward_tensor = prep_tensor(self.rewards)
@@ -40,8 +42,8 @@ class RolloutBuffer:
         value_tensor = prep_tensor(self.values) 
         done_tensor = prep_tensor(self.dones)
 
-        # State tensor needs different shape
-        state_tensor = t.from_numpy(self.states[:self.idx]).reshape(-1, 4, 84, 84).to(self.device)
+        # State tensor needs different shape - batch time and num_envs together for parallel processing
+        state_tensor = t.from_numpy(rearrange(self.states[:self.idx], 't n c h w -> (t n) c h w'))
         return state_tensor, reward_tensor, action_tensor, log_prob_tensor, value_tensor, done_tensor
 
     def clear(self):

@@ -3,15 +3,26 @@ import os
 import torch as t
 import wandb
 import random
+from datetime import datetime
 from multiprocessing import Process, Queue
 from environment import make_eval_env
-from utils import get_torch_compatible_actions, readable_timestamp
+from utils import get_torch_compatible_actions
 from ppo import PPO
 from curriculum import ALL_LEVELS
 
 
 # Default evaluation levels when not using curriculum
 DEFAULT_EVAL_LEVELS = ['YoshiIsland2', 'YoshiIsland3', 'DonutPlains1', 'DonutPlains4', 'ChocolateIsland1']
+
+
+def eval_timestamp():
+    """Short timestamp for eval directories: HH-MM"""
+    return datetime.now().strftime("%H-%M")
+
+
+def run_timestamp():
+    """Timestamp for run directories: DD-MM_HH-MM"""
+    return datetime.now().strftime("%d-%m_%H-%M")
 
 
 def get_eval_levels_for_training(curriculum_state=None, trained_levels=None):
@@ -145,9 +156,12 @@ def eval_parallel_safe(model, policy, config, record_dir, num_episodes=5, eval_l
 
 def run_evaluation(model, policy, tracking, config, run, step, episodes, curriculum_state=None):
     """Run evaluation and log results to wandb."""
-    eval_timestamp = readable_timestamp()
-    run_dir = f'evals/run_{tracking["run_timestamp"]}'
-    eval_dir = f'{run_dir}/eval_step_{tracking["total_env_steps"] // config.num_envs}_time_{eval_timestamp}'
+    episode_num = tracking['episode_num']
+    time_str = eval_timestamp()
+    
+    # Format: evals/TransPala_27-11/eval_ep1234_14-30/
+    run_dir = f'evals/{config.architecture}_{tracking["run_timestamp"]}'
+    eval_dir = f'{run_dir}/eval_ep{episode_num}_{time_str}'
     os.makedirs(eval_dir, exist_ok=True)
     
     # Determine eval levels based on curriculum or config
@@ -162,10 +176,8 @@ def run_evaluation(model, policy, tracking, config, run, step, episodes, curricu
     
     if config.USE_WANDB:
         wandb.log(eval_metrics)
-        vids = wandb.Artifact(
-            f"{readable_timestamp()}_step_{tracking['total_env_steps'] // config.num_envs}",
-            type="eval_videos"
-        )
+        artifact_name = f"{config.architecture}_ep{episode_num}_{time_str}"
+        vids = wandb.Artifact(artifact_name, type="eval_videos")
         vids.add_dir(eval_dir)
         run.log_artifact(vids)
 

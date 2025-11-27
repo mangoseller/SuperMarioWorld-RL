@@ -33,7 +33,7 @@ CURRICULUM_1 = [
     (0.05, {'YoshiIsland2': 1.0}),
     (0.25, {'YoshiIsland2': 0.3, 'DonutPlains1': 0.7}),
     (0.30, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.3, 'DonutPlains4': 0.6}),
-    (0.40, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.1, 'DonutPlains4': 0.4, 'DonutPlains5': 0.4}),
+    (1.00, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.1, 'DonutPlains4': 0.4, 'DonutPlains5': 0.4}),
 ]
 
 # Curriculum 2: Slower progression, ends with YoshiIsland3
