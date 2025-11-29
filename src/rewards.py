@@ -12,8 +12,6 @@ REWARD_CONFIG = {
     'midway_reward': 20.0,
     'level_complete_reward': 50.0,
 }
-
-
 class MovementReward:
     # Reward forward progress through the level
     def __init__(self):
@@ -21,11 +19,14 @@ class MovementReward:
         self._max_x = 0
         self._global_x = 0
         self._last_x = 0
+        self.stuck_steps = 0
+        self.stuck_threshold = 300 # ~10s
     
-    def reset(self, _info):
+    def reset(self, info):
         self._max_x = 0
         self._global_x = 0
-        self._last_x = 0
+        self._last_x = info.get("xpos", 0)
+        self.stuck_steps = 0
 
     def calculate(self, info):
         """Mario's x-position is a 1byte uint that ranges from 0-255, and resets multiple times over the course of a single level.
@@ -48,12 +49,16 @@ class MovementReward:
         self._last_x = raw_x
         
         if self._global_x > self._max_x:
-
             gain = self._global_x - self._max_x
             self._max_x = self._global_x
+            self.stuck_steps = 0 # If we moved forward, reset the counter
             return gain * self.scale
-
+        
+        self.stuck_steps += 1
+        if self.stuck_steps > self.stuck_threshold:
+            return abs(delta) * (self.scale * 0.1) # Reward any movement, just try something different
         return 0.0
+
 
 
 class DamageReward:

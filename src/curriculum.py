@@ -29,13 +29,18 @@ ALL_LEVELS = [
 # - Next 20%: Introduce DonutPlains1
 # - Next 20%: Add DonutPlains3
 # - Final 40%: Full mix with DonutPlains4
+
+
 CURRICULUM_1 = [
     (0.05, {'YoshiIsland2': 1.0}),
-    (0.25, {'YoshiIsland2': 0.3, 'DonutPlains1': 0.7}),
-    (0.30, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.3, 'DonutPlains4': 0.6}),
-    (1.00, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.1, 'DonutPlains4': 0.4, 'DonutPlains5': 0.4}),
+    (0.15, {'YoshiIsland2': 0.5, 'VanillaDome5': 0.5}),
+    (0.25, {'YoshiIsland2': 0.2, 'VanillaDome5': 0.8}),
+    (0.30, {'YoshiIsland2': 0.1, 'VanillaDome5': 0.9}),
+    (0.40, {'YoshiIsland2': 0.1, 'VanillaDome5': 0.65, 'ChocolateIsland3': 0.25}),
+    (0.60, {'YoshiIsland2': 0.1, 'VanillaDome5': 0.4, 'ChocolateIsland3': 0.5}),
+    (0.75, {'YoshiIsland2': 0.075, 'VanillaDome5': 0.275, 'ChocolateIsland3': 0.45, 'YoshiIsland3': 0.15}),
+    (1.00, {'YoshiIsland2': 0.05, 'ChocolateIsland3': 0.4, 'VanillaDome5': 0.15, 'YoshiIsland3': 0.3}),
 ]
-
 # Curriculum 2: Slower progression, ends with YoshiIsland3
 # - First 30%: Easy level only (YoshiIsland2)  
 # - Next 30%: Mix YoshiIsland2 and DonutPlains1

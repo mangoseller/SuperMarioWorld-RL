@@ -117,7 +117,7 @@ class ImpalaLike(nn.Module):
         self.block1 = ModelBlock(16, 32, num_residual=2)
         self.block2 = ModelBlock(32, 64, num_residual=2)
         
-        self.block3 = ModelBlock(64, 128, num_residual=2, use_spatial_attention=True)
+        self.block3 = ModelBlock(64, 128, num_residual=2, use_spatial_attention=True, use_axial_attention=True)
         
         self.embed_dim = 128
         

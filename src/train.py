@@ -145,6 +145,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     print(f"Training {config.architecture} on {device.upper()}")
     
     pbar = tqdm(range(start_step, config.num_training_steps), disable=not config.show_progress)
+    agent_class = agent.__class__
     agent = t.compile(agent)
     for step in pbar:
         # Check for curriculum phase transition
@@ -193,7 +194,16 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
         
         tracking['total_env_steps'] += config.num_envs
         update_episode_tracking(tracking, config, rewards, terminated)
-
+        recent_rewards = tracking['completed_rewards'][-20:]
+        curr_entropy = get_entropy(step, total_steps=config.num_training_steps, max_entropy=config.c2)
+        if len(recent_rewards) >= 20:
+            std = np.std(recent_rewards)
+            recent_rewards = np.mean(recent_rewards) 
+            if std < 1.0 and recent_rewards < 150:
+                curr_entropy *= 3
+                if step % 1000 == 0:
+                    print(f"[{step}] Entropy Boost Triggered: StdDev {std:.2f}")
+        policy.c2 = curr_entropy
         # Update progress bar
         if config.show_progress and len(tracking['completed_rewards']) > 0:
             postfix = {
@@ -213,7 +223,7 @@ def training_loop(agent, config, num_eval_episodes=5, checkpoint_path=None, resu
     
         # Evaluation
         if step - tracking['last_eval_step'] >= config.eval_freq:
-            run_evaluation(agent.__class__, policy, tracking, config, run, step, num_eval_episodes, curriculum_state)
+            run_evaluation(agent_class, policy, tracking, config, run, step, num_eval_episodes, curriculum_state)
 
         # Handle environment resets
         state, environment = handle_env_resets(env, environment, next_state, terminated, config.num_envs)
