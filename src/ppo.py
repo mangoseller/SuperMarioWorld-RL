@@ -21,6 +21,11 @@ class PPO:
         self.model = model
         self.config = config
         self.device = device
+        
+        # For multi-GPU: keep reference to base model for action selection
+        # DataParallel will be used only during training updates
+        self._base_model = get_base_model(model)
+        
         self.optimizer = t.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5)
         self.eps = config.clip_eps
         self.c1 = config.c1
@@ -46,19 +51,20 @@ class PPO:
 
     def _has_pixel_control(self):
         """Check if the underlying model has pixel control head."""
-        base_model = get_base_model(self.model)
-        return hasattr(base_model, 'pixel_control_head')
+        return hasattr(self._base_model, 'pixel_control_head')
 
     @t.inference_mode()
     def action_selection(self, states):
-        self.model.eval() 
+        # Use base model for action selection (single GPU)
+        # This avoids DataParallel issues with small batch sizes
+        self._base_model.eval()
 
         states = states.to(self.device)
         if states.dim() == 3:
             states = states.unsqueeze(0)
 
         # Standard forward pass for action selection (no pixel control needed here)
-        state_logits, value = self.model(states)
+        state_logits, value = self._base_model(states)
         
         distributions = Categorical(logits=state_logits)
         actions = distributions.sample()
@@ -90,6 +96,7 @@ class PPO:
         advantages = advantages.to(self.device)
         returns = returns.to(self.device)
         
+        # Use full model (potentially DataParallel) for training
         # Handle models with and without pixel control support
         if pixel_targets is not None:
             # Model returns: policy, value, pixel_pred
@@ -138,6 +145,7 @@ class PPO:
 
     def compute_advantages(self, buffer, next_state=None):
         # Compute GAE advantages and returns
+        # Use base model for value estimation (single GPU, small batch)
         gamma = self.config.gamma
         lambda_ = self.config.lambda_gae
         _, rewards, _, _, values, dones = buffer.get()
@@ -154,9 +162,8 @@ class PPO:
 
         if next_state is not None:
             with t.no_grad():
-                # Handle next state value estimation without pixel control
-                out = self.model(next_state.to(self.device))
-                # Handle tuple return if model defaults to returning tuple (unlikely based on implementation but safe)
+                # Use base model for value estimation
+                out = self._base_model(next_state.to(self.device))
                 last_values = out[1] if isinstance(out, tuple) else out
                 last_values = last_values.squeeze(-1)
         else:
