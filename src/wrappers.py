@@ -1,42 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from rewards import REWARD_CONFIG
-# h/wrappers.py
 
-class DilatedFrameStack(gym.Wrapper):
-    def __init__(self, env, k=4, dilation=8):
-        super().__init__(env)
-        self.k = k
-        self.dilation = dilation
-        self.buffer_size = (k - 1) * dilation + 1
-        self.frames = []
-        
-        # Update observation space
-        shp = env.observation_space.shape
-        self.observation_space = gym.spaces.Box(
-            low=0, high=255, 
-            shape=(shp[0] * k, shp[1], shp[2]), 
-            dtype=env.observation_space.dtype
-        )
-
-    def reset(self, **kwargs):
-        obs, info = self.env.reset(**kwargs)
-        # Fill buffer with duplicates of the first frame
-        self.frames = [obs] * self.buffer_size
-        return self._get_ob(), info
-
-    def step(self, action):
-        obs, reward, terminated, truncated, info = self.env.step(action)
-        self.frames.append(obs)
-        if len(self.frames) > self.buffer_size:
-            self.frames.pop(0)
-        return self._get_ob(), reward, terminated, truncated, info
-
-    def _get_ob(self):
-        # Gather frames: [t, t-dilation, t-2*dilation, ...]
-        # Since we append new frames to the end, the 'current' frame is at index -1.
-        selected_frames = [self.frames[-(1 + i * self.dilation)] for i in range(self.k)]
-        return np.concatenate(selected_frames, axis=0)
 
 class Discretizer(gym.ActionWrapper):
 # Wrap an env to use COMBOS as its discrete action space
@@ -56,7 +21,7 @@ class Discretizer(gym.ActionWrapper):
 
 
 class FrameSkipAndTermination(gym.Wrapper):
-    """Frame skip wrapper that handles termination on death and level completion"""
+    # Frame skip wrapper that handles termination on death and level completion
     def __init__(self, env, skip=2):
         super().__init__(env)
         self.skip = skip
@@ -95,7 +60,7 @@ class FrameSkipAndTermination(gym.Wrapper):
 
 
 class MaxStepWrapper(gym.Wrapper):
-
+    # Terminate episodes at max_steps steps
     def __init__(self, env, max_steps=85000):
         super().__init__(env)
         self.max_steps = max_steps

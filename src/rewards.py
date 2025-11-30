@@ -172,7 +172,7 @@ class LevelCompleteReward:
 
 
 class ComposedRewardWrapper(gym.Wrapper):
-    """Handle reward components and apply the step penalty to punish inaction/long episodes."""
+    # Handle reward components and apply the step penalty to punish inaction/long episodes.
     
     def __init__(self, env):
         super().__init__(env)

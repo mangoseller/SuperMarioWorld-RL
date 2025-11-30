@@ -11,17 +11,17 @@ class TrainingConfig:
     show_progress: bool
     architecture: str
 
-    steps_per_env: int = 4096
+    steps_per_env: int = 4096 # Number of rollout steps to collect per environment before PPO update
     learning_rate: float = 1e-4
-    gamma: float = 0.998
-    lambda_gae: float = 0.95
-    epsilon_advantage: float = 1e-8
-    clip_eps: float = 0.2
-    c1: float = 0.5
-    c2: float = 0.01
-    epochs: int = 8
+    gamma: float = 0.998 # Future reward discounting factor
+    lambda_gae: float = 0.95 # Controls GAE strength. ~1 = Trust the actual observed rewards, ~0 = Trust value heads immediate predictions 
+    epsilon_advantage: float = 1e-8 # Avoid dividing by zero in advantage calculation
+    clip_eps: float = 0.2 # Trust region - the new policy after an update cannot be more than 20% (less/more) likely to an action than the old policy
+    c1: float = 0.5 # Value loss strength - mediates how much the value head loss contributes to the overall model loss
+    c2: float = 0.01 # Entropy coefficient - encourages exploration by penalizing deterministic policies.
+    epochs: int = 4 # Iterations the PPO update is performed for
     lr_schedule: str = 'constant'
-    min_lr: float = 1e-6
+    min_lr: float = 1e-6 
     USE_WANDB: bool = False
     wandb_project: str = 'marioRL'
     use_curriculum: bool = False
@@ -33,7 +33,6 @@ class TrainingConfig:
     @property
     def minibatch_size(self):
         return max(32, self.buffer_size // 32)
-    
     def to_wandb_config(self):
         return {
             "learning_rate": self.learning_rate,
@@ -49,9 +48,14 @@ class TrainingConfig:
             "minibatch_size": self.minibatch_size,
             "lr_schedule": self.lr_schedule,
             "min_lr": self.min_lr,
-            "steps_per_env": self.steps_per_env
+            "steps_per_env": self.steps_per_env,      
+            "num_envs": self.num_envs,
+            "num_training_steps": self.num_training_steps,
+            "use_curriculum": self.use_curriculum,
+            "eval_freq": self.eval_freq,
+            "checkpoint_freq": self.checkpoint_freq
         }
-    
+
     def setup_wandb(self):
         if not self.USE_WANDB:
             return
@@ -64,14 +68,7 @@ class TrainingConfig:
             config=self.to_wandb_config()
         )
     
-    @classmethod
-    def from_wandb(cls, base_config):
-        config_dict = base_config.__dict__.copy()
-        for k, v, in wandb.config.items():
-            if hasattr(base_config, k):
-                config_dict[k] = v
-        return cls(**config_dict)
-
+# Model configs
 
 TRANSPALA_TRAIN_CONFIG = TrainingConfig(
     architecture='TransPala',
@@ -85,7 +82,7 @@ TRANSPALA_TRAIN_CONFIG = TrainingConfig(
     gamma=0.995,
     lambda_gae=0.95,
     num_envs=60,
-    steps_per_env=512,  # 28 × 512 = 14,336 batch size
+    steps_per_env=512,  
     num_training_steps=4_000_000,
     checkpoint_freq=100_000,
     eval_freq=100_000,
@@ -132,6 +129,7 @@ TRANSPALA_TEST_CONFIG = TrainingConfig(
     show_progress=True,
     USE_WANDB=False
 )
+
 IMPALA_TRAIN_CONFIG = TrainingConfig(
     architecture='ImpalaLike',
     lr_schedule='linear',

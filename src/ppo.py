@@ -1,31 +1,13 @@
 import torch as t 
 from torch.distributions import Categorical
 import numpy as np
-
-
-def get_base_model(model):
-    """
-    Get the underlying model from DataParallel/DistributedDataParallel/compiled wrapper.
-    """
-    if hasattr(model, 'module'):
-        model = model.module
-    if hasattr(model, '_orig_mod'):
-        model = model._orig_mod
-    if hasattr(model, 'module'):
-        model = model.module
-    return model
-
+from utils import compute_pixel_change_targets
 
 class PPO:
     def __init__(self, model, config, device):
         self.model = model
         self.config = config
         self.device = device
-        
-        # For multi-GPU: keep reference to base model for action selection
-        # DataParallel will be used only during training updates
-        self._base_model = get_base_model(model)
-        
         self.optimizer = t.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5)
         self.eps = config.clip_eps
         self.c1 = config.c1
@@ -48,62 +30,36 @@ class PPO:
             )
         elif lr_schedule == 'constant':
             self.scheduler = None
-
+    @property
     def _has_pixel_control(self):
-        """Check if the underlying model has pixel control head."""
-        return hasattr(self._base_model, 'pixel_control_head')
+        return hasattr(self.model, 'pixel_control_head')
 
     @t.inference_mode()
     def action_selection(self, states):
-        # Use base model for action selection (single GPU)
-        # This avoids DataParallel issues with small batch sizes
-        self._base_model.eval()
 
         states = states.to(self.device)
         if states.dim() == 3:
             states = states.unsqueeze(0)
-
-        # Standard forward pass for action selection (no pixel control needed here)
-        state_logits, value = self._base_model(states)
-        
+        state_logits, value = self.model(states)
         distributions = Categorical(logits=state_logits)
         actions = distributions.sample()
         log_probs = distributions.log_prob(actions)
 
         return actions, log_probs, value.squeeze(-1)
-
-    @t.no_grad()
-    def _compute_diagnostics(self, ratio, values, returns):
-        # Compute diagnostic metrics for logging
-        clip_fraction = ((ratio < 1 - self.eps) | (ratio > 1 + self.eps)).float().mean()
-        approx_kl = ((ratio - 1) - t.log(ratio)).mean()
-            
-        y_pred = values.squeeze()
-        y_true = returns
-        var_y = t.var(y_true)
-        explained_var = 1 - t.var(y_true - y_pred) / (var_y + 1e-8)
-            
-        return {
-            'clip_fraction': clip_fraction.item(),
-            'approx_kl': approx_kl.item(),
-            'explained_variance': explained_var.item(),
-        }
     
-    def compute_loss(self, states, actions, old_log_probs, advantages, returns, pixel_targets=None, pixel_loss_weight=0.25):
+    def compute_loss(self, states, actions, old_log_probs, advantages, returns, pixel_targets=None, pixel_loss_weight=0.1):
+        self.model.train()
+
         states = states.to(self.device)
         actions = actions.to(self.device)
         old_log_probs = old_log_probs.to(self.device)
         advantages = advantages.to(self.device)
         returns = returns.to(self.device)
         
-        # Use full model (potentially DataParallel) for training
-        # Handle models with and without pixel control support
         if pixel_targets is not None:
-            # Model returns: policy, value, pixel_pred
             logits, values, pixel_pred = self.model(states, return_pixel_control=True)
             pixel_targets = pixel_targets.to(self.device)
         else:
-            # Standard return
             logits, values = self.model(states)
 
         distributions = Categorical(logits=logits)
@@ -133,42 +89,37 @@ class PPO:
                     (self.c2 * -entropy_loss) +
                     (pixel_loss_weight * pixel_control_loss))
 
-        diagnostics = self._compute_diagnostics(ratio, values, returns)
-        diagnostics.update({
+        diagnostics = {
             'policy_loss': policy_loss.item(),
             'value_loss': value_loss.item(),
             'entropy': entropy_loss.item(),
             'pixel_control_loss': pixel_control_loss.item()
-        })
+        }
         
         return total_loss, diagnostics
 
     def compute_advantages(self, buffer, next_state=None):
         # Compute GAE advantages and returns
-        # Use base model for value estimation (single GPU, small batch)
+        
         gamma = self.config.gamma
         lambda_ = self.config.lambda_gae
         _, rewards, _, _, values, dones = buffer.get()
         
         values = values.detach()       
-
         # Reshape to (Batch, Num_Envs) for GAE calculation
         reshape = lambda tensor: tensor.view(len(buffer), buffer.rewards.shape[1])
+        
         rewards = reshape(rewards)
         values = reshape(values)
         dones = reshape(dones)
-
         advantages = t.zeros_like(rewards)
 
         if next_state is not None:
-            with t.no_grad():
-                # Use base model for value estimation
-                out = self._base_model(next_state.to(self.device))
+                out = self.model(next_state.to(self.device))
                 last_values = out[1] if isinstance(out, tuple) else out
                 last_values = last_values.squeeze(-1)
         else:
             last_values = t.zeros(buffer.rewards.shape[1], device=self.device)
-
         gaes = t.zeros(buffer.rewards.shape[1], device=self.device)
 
         for i in range(len(buffer)-1, -1, -1):
@@ -185,11 +136,11 @@ class PPO:
         advantages = advantages.view(-1)
         values = values.view(-1)
         returns = advantages + values
+
         return advantages, returns
 
     def update(self, buffer, config, eps=1e-8, next_state=None):
-            from utils import compute_pixel_change_targets
-            
+ 
             self.model.train()
             minibatch_size = config.minibatch_size
             num_epochs = config.epochs
@@ -197,16 +148,15 @@ class PPO:
             # Get flattened buffer data
             states, _, actions, log_probs, _, _ = buffer.get()
             
-            # Compute advantages 
             advantages, returns = self.compute_advantages(buffer, next_state=next_state)
             normalized_advantages = (advantages - advantages.mean()) / (advantages.std() + eps)
             
-            # Check if model supports pixel control (use helper to handle DataParallel)
-            use_pixel_control = self._has_pixel_control()
+
             
             pixel_targets = None
             
-            if use_pixel_control:
+            if self._has_pixel_control: # TODO: Refactor
+
                 # Reconstruct (Time, Env) structure to compute temporal differences
                 buffer_len = buffer.capacity
                 num_envs = buffer.rewards.shape[1]
@@ -241,32 +191,17 @@ class PPO:
                 # We must trim the training data to match pixel targets length (Time - 1)
                 # Since buffer is flattened Time-Major (t0e0, t0e1... t1e0, t1e1...), 
                 # removing the last `num_envs` items removes the last timestep T.
+
                 states = states[:-num_envs]
                 actions = actions[:-num_envs]
                 log_probs = log_probs[:-num_envs]
                 normalized_advantages = normalized_advantages[:-num_envs]
                 returns = returns[:-num_envs]
-                
-                assert states.shape[0] == pixel_targets.shape[0], \
-                    f"Shape mismatch: States {states.shape[0]} != Targets {pixel_targets.shape[0]}"
-
-            # Initialize diagnostics tracking
-            total_losses = []
-            all_diagnostics = {
-                'policy_loss': [],
-                'value_loss': [],
-                'entropy': [],
-                'clip_fraction': [],
-                'approx_kl': [],
-                'explained_variance': [],
-                'pixel_control_loss': [],
-            }
-            
+                            
             # Mini-batch Updates
             for _ in range(1, num_epochs+1):
-                indices = t.randperm(states.shape[0])
-                
-                # Shuffle data
+
+                indices = t.randperm(states.shape[0])    
                 states_shuffled = states[indices]
                 actions_shuffled = actions[indices]
                 log_probs_shuffled = log_probs[indices]
@@ -274,7 +209,7 @@ class PPO:
                 returns_shuffled = returns[indices]
                 
                 pixel_targets_shuffled = None
-                if use_pixel_control:
+                if self._has_pixel_control:
                     pixel_targets_shuffled = pixel_targets[indices]
 
                 for start_idx in range(0, states.shape[0], minibatch_size):
@@ -287,32 +222,27 @@ class PPO:
                     mb_returns = returns_shuffled[start_idx:end_idx]
                     
                     mb_pixel_targets = None
-                    if use_pixel_control:
+                    if self._has_pixel_control:
                         mb_pixel_targets = pixel_targets_shuffled[start_idx:end_idx]
 
-     
+ 
                     with t.amp.autocast(device_type='cuda', dtype=t.bfloat16):
                         loss, diagnostics = self.compute_loss(
                         mb_states, mb_actions, mb_log_probs, mb_advantages, mb_returns,
                         pixel_targets=mb_pixel_targets
                     )
+                    total_losses = []
                     total_losses.append(loss.item())
-                    for key, value in diagnostics.items():
-                        all_diagnostics[key].append(value)
 
                     self.optimizer.zero_grad()
                     loss.backward()
-                    t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.5)
+                    t.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.5) # Is this using the correct param? 
                     self.optimizer.step()
                     
             if self.scheduler is not None:
                 self.scheduler.step()
             
-            averaged_diagnostics = {
-                key: np.mean(values) if values else 0.0 for key, values in all_diagnostics.items()
-            }
-            averaged_diagnostics['total_loss'] = np.mean(total_losses)
-            
+            averaged_diagnostics = {np.mean(total_losses)}     
             return averaged_diagnostics
     
     def get_current_lr(self):

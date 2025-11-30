@@ -1,27 +1,169 @@
+
 import warnings
 warnings.filterwarnings('ignore')
 
+import os
 import torch as t
 import numpy as np
+import wandb
 from tqdm import tqdm
-from runner import run_training
+from datetime import datetime
+from multiprocessing import Process, Queue
+
+from models import TransPala, ImpalaLike, ConvolutionalSmall
 from ppo import PPO
 from buffer import RolloutBuffer
 from environment import make_env
 from curriculum import Curriculum, assign_levels
-from evals import run_evaluation
-from utils import (
-    readable_timestamp,
-    get_entropy,
-    save_checkpoint,
-    load_checkpoint,
-    log_training_metrics,
-)
+from evals import evaluate
 
+
+MODEL_CLASSES = {
+    'TransPala': TransPala,
+    'ImpalaLike': ImpalaLike,
+    'ConvolutionalSmall': ConvolutionalSmall,
+}
+
+
+def readable_timestamp():
+    return datetime.now().strftime("%d-%m_%H-%M")
+
+
+def get_entropy(step, total_steps, max_entropy=0.02, min_entropy=0.005):
+    """Linearly decay entropy coefficient over training."""
+    progress = step / total_steps
+    return max_entropy - (max_entropy - min_entropy) * progress
+
+
+def make_env_for_curriculum(curriculum, config):
+    """Create environment with level distribution from current curriculum stage."""
+    level_dist = assign_levels(config.num_envs, curriculum.weights)
+    return make_env(num_envs=config.num_envs, level_distribution=level_dist), level_dist
+
+
+def save_checkpoint(agent, policy, tracking, config, step, curriculum_option=None):
+    """Save model checkpoint."""
+    os.makedirs("model_checkpoints", exist_ok=True)
+    
+    checkpoint = {
+        'model_state_dict': agent.state_dict(),
+        'optimizer_state_dict': policy.optimizer.state_dict(),
+        'scheduler_state_dict': policy.scheduler.state_dict() if policy.scheduler else None,
+        'step': step,
+        'tracking': tracking,
+        'config_dict': {
+            'architecture': config.architecture,
+            'num_training_steps': config.num_training_steps,
+            'learning_rate': config.learning_rate,
+            'min_lr': config.min_lr,
+            'lr_schedule': config.lr_schedule,
+            'c2': config.c2,
+            'use_curriculum': config.use_curriculum,
+            'curriculum_option': curriculum_option,
+        }
+    }
+    
+    path = f"model_checkpoints/{config.architecture}_ep{tracking['episode_num']}.pt"
+    t.save(checkpoint, path)
+    
+    if config.USE_WANDB:
+        artifact = wandb.Artifact(f"model_ep{tracking['episode_num']}", type="model")
+        artifact.add_file(path)
+        wandb.log_artifact(artifact)
+    
+    return path
+
+
+def load_checkpoint(path, agent, policy, resume=False):
+    """Load checkpoint. If resume=True, restore optimizer/scheduler state."""
+    checkpoint = t.load(path, map_location='cpu')
+    
+    state_dict = checkpoint.get('model_state_dict', checkpoint)
+    state_dict = {k.replace('_orig_mod.', ''): v for k, v in state_dict.items()}
+    agent.load_state_dict(state_dict)
+    
+    if resume:
+        policy.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if checkpoint.get('scheduler_state_dict') and policy.scheduler:
+            policy.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        return checkpoint['step'], checkpoint['tracking']
+    
+    return 0, None
+
+
+def _eval_worker(state_dict, architecture, config, num_episodes, eval_dir, eval_levels, queue):
+    """Subprocess worker for evaluation."""
+    model = MODEL_CLASSES[architecture]().to('cpu')
+    model.load_state_dict(state_dict)
+    policy = PPO(model, config, device='cpu')
+    queue.put(evaluate(policy, num_episodes, eval_dir, eval_levels))
+
+
+def run_evaluation(agent, policy, tracking, config, step, num_episodes, curriculum=None):
+    """Run evaluation in subprocess and log results."""
+    timestamp = datetime.now().strftime("%H-%M")
+    eval_dir = f'evals/{config.architecture}_{tracking["run_timestamp"]}/eval_ep{tracking["episode_num"]}_{timestamp}'
+    os.makedirs(eval_dir, exist_ok=True)
+    
+    eval_levels = curriculum.eval_levels if curriculum else None
+    state_dict = {k: v.cpu() for k, v in agent.state_dict().items()}
+    
+    queue = Queue()
+    proc = Process(target=_eval_worker, args=(
+        state_dict, config.architecture, config, num_episodes, eval_dir, eval_levels, queue
+    ))
+    proc.start()
+    proc.join()
+    metrics = queue.get()
+    
+    if config.USE_WANDB:
+        wandb.log(metrics)
+        artifact = wandb.Artifact(f"{config.architecture}_ep{tracking['episode_num']}_{timestamp}", type="eval_videos")
+        artifact.add_dir(eval_dir)
+        wandb.log_artifact(artifact)
+    
+    return metrics
+
+
+def log_metrics(tracking, diagnostics, policy, config, step):
+    """Log training metrics to wandb."""
+    if not config.USE_WANDB:
+        return
+    
+    mean_reward = np.mean(tracking['completed_rewards']) if tracking['completed_rewards'] else 0
+    mean_length = np.mean(tracking['completed_lengths']) if tracking['completed_lengths'] else 0
+    
+    wandb.log({
+        'train/mean_reward': mean_reward,
+        'train/mean_episode_length': mean_length,
+        'train/episodes': tracking['episode_num'],
+        'train/total_env_steps': tracking['total_env_steps'],
+        'loss/total': diagnostics['total_loss'],
+        'loss/policy': diagnostics['policy_loss'],
+        'loss/value': diagnostics['value_loss'],
+        'loss/pixel_control': diagnostics['pixel_control_loss'],
+        'diagnostics/entropy': diagnostics['entropy'],
+        'diagnostics/clip_fraction': diagnostics['clip_fraction'],
+        'diagnostics/approx_kl': diagnostics['approx_kl'],
+        'diagnostics/explained_variance': diagnostics['explained_variance'],
+        'hyperparams/entropy_coef': policy.c2,
+        'hyperparams/learning_rate': policy.get_current_lr(),
+    }, step=step)
 
 
 def train(model_class, config, num_eval_episodes=9, curriculum_option=None, 
           checkpoint_path=None, resume=False):
+    """
+    Main training function.
+    
+    Args:
+        model_class: Model class to instantiate
+        config: Training configuration
+        num_eval_episodes: Episodes per evaluation
+        curriculum_option: Curriculum schedule option (1 or 2)
+        checkpoint_path: Path to checkpoint for finetuning or resuming
+        resume: If True with checkpoint_path, resume from checkpoint step
+    """
     run = config.setup_wandb()
     device = "cuda" if t.cuda.is_available() else "cpu"
     
@@ -116,7 +258,6 @@ def train(model_class, config, num_eval_episodes=9, curriculum_option=None,
             dones.squeeze().cpu().numpy(),
         )
         
-        # Update episode tracking
         tracking['total_env_steps'] += config.num_envs
         for i in range(config.num_envs):
             tracking['current_episode_rewards'][i] += rewards[i].item()
@@ -154,25 +295,24 @@ def train(model_class, config, num_eval_episodes=9, curriculum_option=None,
         
         # Evaluation and checkpoint
         if step - tracking['last_eval_step'] >= config.eval_freq:
-            save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option)
-            run_evaluation(model_class, policy, tracking, config, run, step, num_eval_episodes, curriculum)
+            run_evaluation(agent, policy, tracking, config, step, num_eval_episodes, curriculum)
+            save_checkpoint(agent, policy, tracking, config, step, curriculum_option)
             print(f"Eval + checkpoint at step {step}")
             tracking['last_eval_step'] = step
         
         # PPO update
         if buffer.idx == buffer.capacity:
             diagnostics = policy.update(buffer, config, next_state=state)
-            log_training_metrics(tracking, diagnostics, policy, config, step)
+            log_metrics(tracking, diagnostics, policy, config, step)
             tracking['completed_rewards'].clear()
             tracking['completed_lengths'].clear()
             buffer.clear()
     
     env.close()
-    run_evaluation(model_class, policy, tracking, config, run, step, curriculum)
-    save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option)
+    run_evaluation(agent, policy, tracking, config, step, num_eval_episodes, curriculum)
+    save_checkpoint(agent, policy, tracking, config, step, curriculum_option)
     
     if config.USE_WANDB:
-        import wandb
         wandb.finish()
     
     print("Training complete.")
@@ -180,4 +320,5 @@ def train(model_class, config, num_eval_episodes=9, curriculum_option=None,
 
 
 if __name__ == "__main__":
+    from runner import run_training
     run_training()
