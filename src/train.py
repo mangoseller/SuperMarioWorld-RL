@@ -35,8 +35,8 @@ def train(model_class, config, curriculum_option=None,
     run = config.setup_wandb()
     device = "cuda" if t.cuda.is_available() else "cpu"
     
-    agent = model_class().to(device)
-    policy = PPO(agent, config, device)
+    original_agent = model_class().to(device)
+    policy = PPO(original_agent, config, device)
     
     tracking = {
         'current_episode_rewards': [0.0] * config.num_envs,
@@ -51,7 +51,7 @@ def train(model_class, config, curriculum_option=None,
     start_step = 0
     
     if checkpoint_path:
-        start_step, saved_tracking = load_checkpoint(checkpoint_path, agent, policy, resume)
+        start_step, saved_tracking = load_checkpoint(checkpoint_path, original_agent, policy, resume)
         if resume and saved_tracking:
             tracking = saved_tracking
             tracking['run_timestamp'] = readable_timestamp()
@@ -73,10 +73,13 @@ def train(model_class, config, curriculum_option=None,
     buffer = RolloutBuffer(config.steps_per_env, config.num_envs, device)
     td = env.reset()
     state = td['pixels']    
-    print(f"Training {config.architecture} | {sum(p.numel() for p in agent.parameters()):,} params | {device}")
+    print(f"Training {config.architecture} | {sum(p.numel() for p in original_agent.parameters()):,} params | {device}")
     
     pbar = tqdm(range(start_step, config.num_training_steps), disable=not config.show_progress)
-    
+    print("Compiling model for training...")
+
+    agent = t.compile(original_agent)
+    policy.model = agent # Compiled model and original model share same underlying memory 
     for step in pbar:
 
         # Curriculum stage transition
@@ -108,12 +111,12 @@ def train(model_class, config, curriculum_option=None,
         
 
         buffer.store(
-            state.cpu().numpy(),
-            rewards.squeeze().cpu().numpy(),
-            actions.cpu().numpy(),
-            log_probs.cpu().numpy(),
-            values.cpu().numpy(),
-            dones.squeeze().cpu().numpy(),
+            state,
+            rewards.squeeze(),
+            actions,
+            log_probs,
+            values,
+            dones.squeeze(),
         )
         
         # Update episode tracking
@@ -140,7 +143,7 @@ def train(model_class, config, curriculum_option=None,
         if dones.any():
             """Handle episode ends across multiple parallel envs, for environments marked as true in dones,
             reset the env. For finished environments, state sets the frame to the starting frames of the env.
-          Without this logic, parallel envs will never reset upon completion, destroying training"""
+            Without this logic, parallel envs will never reset upon completion, destroying training"""
             reset_td = td.clone()
             # Prepare reset signal
             reset_td["_reset"] = dones.clone()
@@ -156,8 +159,10 @@ def train(model_class, config, curriculum_option=None,
         
         # Evaluation and checkpoint
         if step - tracking['last_eval_step'] >= config.eval_freq:
-            save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option)
+            save_checkpoint(original_agent, policy, tracking, config, run, step, curriculum_option)
+            policy.model = original_agent # Use non-compiled model for evals
             run_evaluation(policy, tracking, config, run, step, curriculum)
+            policy.model = agent
             print(f"Eval + checkpoint at step {step}")
             tracking['last_eval_step'] = step
         
@@ -170,8 +175,9 @@ def train(model_class, config, curriculum_option=None,
             buffer.clear()
     
     env.close()
+    policy.model = original_agent
     run_evaluation(policy, tracking, config, run, step, curriculum)
-    save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option)
+    save_checkpoint(original_agent, policy, tracking, config, run, step, curriculum_option)
     
     if config.USE_WANDB:
         import wandb
