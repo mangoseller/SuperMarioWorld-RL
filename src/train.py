@@ -3,6 +3,7 @@ warnings.filterwarnings('ignore')
 
 import torch as t
 import numpy as np
+from einops import rearrange
 from tqdm import tqdm
 from runner import run_training
 from ppo import PPO
@@ -16,6 +17,7 @@ from utils import (
     save_checkpoint,
     load_checkpoint,
     log_training_metrics,
+    get_torch_compatible_actions
 )
 
 def make_env_for_curriculum(curriculum, config):
@@ -70,23 +72,20 @@ def train(model_class, config, curriculum_option=None,
     
     buffer = RolloutBuffer(config.steps_per_env, config.num_envs, device)
     td = env.reset()
-    state = td['pixels']
-    if config.num_envs == 1 and state.dim() == 3:
-        state = state.unsqueeze(0)
-    
+    state = td['pixels']    
     print(f"Training {config.architecture} | {sum(p.numel() for p in agent.parameters()):,} params | {device}")
     
     pbar = tqdm(range(start_step, config.num_training_steps), disable=not config.show_progress)
     
     for step in pbar:
+
         # Curriculum stage transition
         if curriculum and curriculum.update(step, config.num_training_steps):
             env.close()
             env, level_dist = make_env_for_curriculum(curriculum, config)
             td = env.reset()
             state = td['pixels']
-            if config.num_envs == 1 and state.dim() == 3:
-                state = state.unsqueeze(0)
+
             buffer.clear()
             tracking['current_episode_rewards'] = [0.0] * config.num_envs
             tracking['current_episode_lengths'] = [0] * config.num_envs
@@ -94,27 +93,20 @@ def train(model_class, config, curriculum_option=None,
         
         # Entropy decay with boost for low-variance rewards
         entropy = get_entropy(step, config.num_training_steps, max_entropy=config.c2)
-        recent = tracking['completed_rewards'][-20:]
-        if len(recent) >= 20 and np.std(recent) < 1.0 and np.mean(recent) < 150:
+        recent = tracking['completed_rewards'][-40:]
+        if len(recent) >= 40 and np.std(recent) < 1.0 and np.mean(recent) < 150:
             entropy *= 3
         policy.c2 = entropy
         
         # Step environment
         actions, log_probs, values = policy.action_selection(state)
-        td["action"] = t.nn.functional.one_hot(actions, num_classes=14).float()
-        td = env.step(td)
-        
+        td["action"] = get_torch_compatible_actions(actions)
+        td = env.step(td) 
         next_state = td["next"]["pixels"]
-        if config.num_envs == 1 and next_state.dim() == 3:
-            next_state = next_state.unsqueeze(0)
-        
         rewards = td["next"]["reward"]
         dones = td["next"]["done"] | td["next"].get("truncated", t.zeros_like(td["next"]["done"]))
         
-        if config.num_envs == 1:
-            rewards = rewards.unsqueeze(0) if rewards.dim() == 0 else rewards
-            dones = dones.unsqueeze(0) if dones.dim() == 0 else dones
-        
+
         buffer.store(
             state.cpu().numpy(),
             rewards.squeeze().cpu().numpy(),
@@ -141,24 +133,26 @@ def train(model_class, config, curriculum_option=None,
                 'ep': tracking['episode_num'],
                 'reward': f"{np.mean(tracking['completed_rewards']):.1f}",
                 'lr': f"{policy.get_current_lr():.1e}",
+                'c2': f"{policy.c2:.1e}",
             })
         
-        # Handle resets
-        if config.num_envs == 1:
-            if dones.item():
-                td = env.reset()
-                state = td["pixels"].unsqueeze(0)
-            else:
-                state = next_state
+
+        if dones.any():
+            """Handle episode ends across multiple parallel envs, for environments marked as true in dones,
+            reset the env. For finished environments, state sets the frame to the starting frames of the env.
+          Without this logic, parallel envs will never reset upon completion, destroying training"""
+            reset_td = td.clone()
+            # Prepare reset signal
+            reset_td["_reset"] = dones.clone()
+            # Reset finished environments
+            reset_out = env.reset(reset_td.to('cpu')).to(state.device)
+            # Reshape dones (batch, 1) -> (batch, 1, 1, 1) to match the shape of the envs and allow broadcasting
+            mask = rearrange(dones, 'b c -> b c 1 1')
+            # Apply the mask, reset completed environments
+            state = t.where(mask, reset_out["pixels"], next_state)
+            td = reset_out
         else:
-            if dones.any():
-                reset_td = td.clone()
-                reset_td["_reset"] = dones.unsqueeze(-1)
-                reset_out = env.reset(reset_td.to('cpu')).to(state.device)
-                state = t.where(dones.view(-1, 1, 1, 1), reset_out["pixels"], next_state)
-                td = reset_out
-            else:
-                state = next_state
+            state = next_state
         
         # Evaluation and checkpoint
         if step - tracking['last_eval_step'] >= config.eval_freq:
@@ -181,11 +175,9 @@ def train(model_class, config, curriculum_option=None,
     
     if config.USE_WANDB:
         import wandb
-        wandb.finish()
-    
+        wandb.finish() 
     print("Training complete.")
     return agent
-
 
 if __name__ == "__main__":
     run_training()

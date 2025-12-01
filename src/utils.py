@@ -22,6 +22,7 @@ def get_checkpoint_info(checkpoint_path):
     }
 
 def log_training_metrics(tracking, diagnostics, policy, config, step):
+
     if len(tracking['completed_rewards']) > 0:
         mean_reward = np.mean(tracking['completed_rewards'])
         mean_length = np.mean(tracking['completed_lengths'])
@@ -50,6 +51,7 @@ def log_training_metrics(tracking, diagnostics, policy, config, step):
         wandb.log(metrics, step=step)
 
 def save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option=None):
+
     checkpoint_dir = "model_checkpoints"
     os.makedirs(checkpoint_dir, exist_ok=True)   
     checkpoint = {
@@ -76,6 +78,7 @@ def save_checkpoint(agent, policy, tracking, config, run, step, curriculum_optio
         artifact.add_file(model_path)
         run.log_artifact(artifact)
     tracking['last_checkpoint'] = step
+
     return model_path
 
 def load_checkpoint(checkpoint_path, agent, policy, resume=False):

@@ -7,7 +7,6 @@ class TrainingConfig:
     num_envs: int
     num_training_steps: int 
     eval_freq: int
-    checkpoint_freq: int
     show_progress: bool
     architecture: str
 
@@ -53,7 +52,6 @@ class TrainingConfig:
             "num_training_steps": self.num_training_steps,
             "use_curriculum": self.use_curriculum,
             "eval_freq": self.eval_freq,
-            "checkpoint_freq": self.checkpoint_freq
         }
 
     def setup_wandb(self):
@@ -84,7 +82,6 @@ TRANSPALA_TRAIN_CONFIG = TrainingConfig(
     num_envs=60,
     steps_per_env=512,  
     num_training_steps=4_000_000,
-    checkpoint_freq=100_000,
     eval_freq=100_000,
     show_progress=True,
     USE_WANDB=True
@@ -104,7 +101,6 @@ TRANSPALA_TUNE_CONFIG = TrainingConfig(
     num_envs=28,
     steps_per_env=512,
     num_training_steps=400_000,
-    checkpoint_freq=100_000,
     eval_freq=50_000,
     show_progress=True,
     USE_WANDB=True
@@ -124,7 +120,6 @@ TRANSPALA_TEST_CONFIG = TrainingConfig(
     num_envs=1,
     steps_per_env=4096,
     num_training_steps=500_000,
-    checkpoint_freq=100_000,
     eval_freq=100_000,
     show_progress=True,
     USE_WANDB=False
@@ -142,7 +137,6 @@ IMPALA_TRAIN_CONFIG = TrainingConfig(
     num_envs=240,
     steps_per_env=256,
     num_training_steps=4_000_000,
-    checkpoint_freq=200_000,
     eval_freq=200_000,
     show_progress=True,
     USE_WANDB=True
@@ -161,8 +155,7 @@ IMPALA_TEST_CONFIG = TrainingConfig(
     num_envs=1,
     steps_per_env=100,
     num_training_steps=4_000_000,
-    checkpoint_freq=2000000000000,
-    eval_freq=2,
+    eval_freq=2_000_000,
     show_progress=True,
     USE_WANDB=True
 )
@@ -179,7 +172,6 @@ IMPALA_TUNE_CONFIG = TrainingConfig(
     num_envs=16,
     steps_per_env=512,
     num_training_steps=500_000,
-    checkpoint_freq=50_000,
     eval_freq=50_000,
     show_progress=True,
     USE_WANDB=True
@@ -187,11 +179,10 @@ IMPALA_TUNE_CONFIG = TrainingConfig(
 
 CONV_TRAIN_CONFIG = TrainingConfig(
     architecture="ConvolutionalSmall",
-    num_envs=16,
-    num_training_steps=2000,
-    steps_per_env=25, 
+    num_envs=12,
+    num_training_steps=2_000_000,
+    steps_per_env=256, 
     eval_freq=250_000,
-    checkpoint_freq=200_0000,
     USE_WANDB=False,
     show_progress=True,
     learning_rate=2e-5,
@@ -203,8 +194,7 @@ CONV_TEST_CONFIG = TrainingConfig(
     num_envs=1,
     num_training_steps=1_250_000,
     steps_per_env=4096,
-    eval_freq=200_000,
-    checkpoint_freq=125_000,
+    eval_freq=2,
     USE_WANDB=False,
     show_progress=True,
     c1=0.8,
@@ -220,7 +210,6 @@ CONV_TUNE_CONFIG = TrainingConfig(
     num_training_steps=500_000,
     steps_per_env=4096, 
     eval_freq=1,
-    checkpoint_freq=1000000,
     USE_WANDB=False,
     show_progress=True,
     learning_rate=1e-5,

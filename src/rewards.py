@@ -135,6 +135,7 @@ class MidwayFlagReward:
 
 
 class LifeLossPenalty:
+
     def __init__(self):
         self.penalty = REWARD_CONFIG['life_loss_penalty']
         self.last_lives = None
@@ -154,9 +155,8 @@ class LifeLossPenalty:
 
 
 class LevelCompleteReward:
-    """Large reward for completing the level. The main level we train on, YoshisIsland2 corresponds to 80 in the WRAM address 7E13D6
-     This value changes on level complete, when the overworld is loaded. We can therefore use it as a proxy for a true-level complete flag,
-     but this solution is not very robust."""
+    """Large reward for completing the level. This address changes from 80 when Mario hits the goal tape, so this 
+    value can be used to detect level completion"""
 
     def __init__(self):
         self.reward = REWARD_CONFIG['level_complete_reward']

@@ -1,4 +1,4 @@
-from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv 
+from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv
 from torchrl.envs.transforms import (
     ToTensorImage,
     Resize,
@@ -7,6 +7,7 @@ from torchrl.envs.transforms import (
     StepCounter,
     RewardSum, 
     Compose,
+    UnsqueezeTransform
 )
 import retro
 import gymnasium as gym
@@ -39,8 +40,13 @@ MARIO_ACTIONS = [
 
 
 class MockRetro(gym.Env):
-    """Provides environment specs for ParallelEnv's main-process initialization
-    without launching the actual SNES emulator (which has singleton constraints)."""
+
+    """torchrl's ParallelEnv needs to instantiate the environment in the main process to validate
+    environment specs before spawning workers to create the different envs. The underlying emulator, gym-retro,
+    is not thread-safe however: attempting to spawn workers/additional environments after calling retro.make in the main
+    environment throws a fatal 1 env per process error. To work around this, in the main process we call this mock which matches
+    the actual api of our environment, but does not actually call retro.make. In the subprocesses, we are then safe to call retro.make
+    and create our environments as needed."""
 
     observation_space = gym.spaces.Box(0, 255, (224, 256, 3), np.uint8)
     action_space = gym.spaces.MultiBinary(12)
@@ -77,6 +83,7 @@ def _wrap_env(env, skip=2, record=False, record_dir=None):
     ]))
 
 
+
 def make_env(
     num_envs = 1,
     level_weights = None,
@@ -85,23 +92,29 @@ def make_env(
     record = False,
     record_dir = None,
 ):
-    dist = get_level_distribution(level_distribution, level_weights, num_envs) 
-    render_mode = 'human' if num_envs == 1 else 'rgb_array'
 
+    dist = get_level_distribution(level_distribution, level_weights, num_envs) 
     if num_envs == 1:
-        raw_env = retro.make(
+        env = retro.make(
             'SuperMarioWorld-Snes',
-            state=dist[0],
-            render_mode=render_mode,
+            state='DonutPlains4',
+            render_mode='human', # Enables window if running locally
         )
-        return _wrap_env(raw_env, skip=frame_skip, record=record, record_dir=record_dir)
+        env = _wrap_env(env, skip=frame_skip, record=record, record_dir=record_dir)
+        
+        # Manually unsqueeze to match ParallelEnv's [1, ...] output shape
+        return TransformedEnv(
+            env, 
+            UnsqueezeTransform(
+                dim=0, 
+                allow_positive_dim=True,
+                in_keys=["pixels", "reward", "done", "terminated"]
+            )
+        )
+
     else:
 
-        def create_env(level):
-
-            # If we are in the MainProcess, ParallelEnv is running a dummy check.
-            # We return a MockRetro to satisfy the check without triggering Retro's 1 env per process error
-
+        def _create_parallel_worker(level):
             if multiprocessing.current_process().name == 'MainProcess':
                 raw_env = MockRetro()
             else:
@@ -114,21 +127,28 @@ def make_env(
 
         return ParallelEnv(
             num_workers=num_envs,
-            create_env_fn=create_env,
+            create_env_fn=_create_parallel_worker,
             create_env_kwargs=[{'level': level} for level in dist],
         )
 
-
 def make_eval_env(level, record_dir = None):
-    # Create a single environment for evaluation.
-    return _wrap_env(
+    env = _wrap_env(
         retro.make(
-        'SuperMarioWorld-Snes',
-        state=level,
-        render_mode='rgb_array',
-    ),
+            'SuperMarioWorld-Snes',
+            state=level,
+            render_mode='rgb_array',
+        ),
         record=record_dir is not None,
         record_dir=record_dir,
+    )
+
+    return TransformedEnv(
+        env, 
+        UnsqueezeTransform(
+            dim=0,
+            allow_positive_dim=True, 
+            in_keys=["pixels", "reward", "done", "terminated"]
+        )
     )
 
 def get_level_distribution(level_distribution, level_weights, num_envs):
