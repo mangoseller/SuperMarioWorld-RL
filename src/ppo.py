@@ -1,4 +1,4 @@
-from einops.einops import rearrange
+from einops import rearrange
 import torch as t 
 from torch.distributions import Categorical
 import numpy as np
@@ -8,7 +8,7 @@ class PPO:
         self.model = model
         self.config = config
         self.device = device
-        self.optimizer = t.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5)
+        self.optimizer = t.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5) # What is this eps?
         self.eps = config.clip_eps
         self.c1 = config.c1
         self.c2 = config.c2    
@@ -60,7 +60,7 @@ class PPO:
             pixel_targets = pixel_targets.to(self.device)
         else:
             logits, values = self.model(states)
-
+        # Be able to explain on-policy gradient methods better
         distributions = Categorical(logits=logits)
         new_log_probs = distributions.log_prob(actions) # How likely is the action we took before under the new policy?
 
@@ -91,9 +91,9 @@ class PPO:
 
         # C1 controls how much the shared weights 'care' about the value head, vs the action head, c2 controls how determinsitic the model is
         total_loss = (policy_loss + 
-                    (self.c1 * value_loss) + 
-                    (self.c2 * -entropy_loss) +
-                    (pixel_loss_weight * pixel_control_loss))
+                     (self.c1 * value_loss) + 
+                     (self.c2 * -entropy_loss) +
+                     (pixel_loss_weight * pixel_control_loss))
 
         diagnostics = {
             'policy_loss': policy_loss.item(),
@@ -110,8 +110,8 @@ class PPO:
         
         gamma = self.config.gamma # Future reward discounting factor
 
-        # Lambda controls bias/variance tradeoff - lambda small = high variance/low bias, the model strongly weights immediate rewards and value head predictions
-        # lambda ~1 = Consider the actual observed future rewards more strongly when judging how good a move was - high variance, low bias
+        # Lambda controls bias/variance tradeoff - lambda small = high bias/low variance, the model strongly weights immediate rewards and value head predictions
+        # Lambda ~1 = Consider the actual observed rewards more strongly when judging how good a move was - high variance, low bias
         lambda_ = self.config.lambda_gae 
 
         _, rewards, _, _, values, dones = buffer.get()

@@ -21,7 +21,7 @@ from torchvision.transforms import InterpolationMode
 from curriculum import assign_levels
 from utils import readable_timestamp
 
-MARIO_ACTIONS = [
+MARIO_ACTIONS = [ # Move to wrappers
     [],                   # Do nothing
     ['RIGHT'],            # Walk right
     ['RIGHT', 'Y'],       # Run right  
@@ -84,11 +84,11 @@ def _wrap_env(env, skip=4, record=False, record_dir=None):
 
 
 
-def make_env(
+def make_env( # Does this mean we have num_envs - 1 envs? 
     num_envs = 1,
     level_weights = None,
     level_distribution = None,
-    frame_skip = 2,
+    frame_skip = 3,
     record = False,
     record_dir = None,
 ):
@@ -97,11 +97,10 @@ def make_env(
     if num_envs == 1:
         env = retro.make(
             'SuperMarioWorld-Snes',
-            state='DonutPlains4',
+            state='Bridges2',
             render_mode='human', # Enables window if running locally
         )
         env = _wrap_env(env, skip=frame_skip, record=record, record_dir=record_dir)
-        
         # Manually unsqueeze to match ParallelEnv's [1, ...] output shape
         return TransformedEnv(
             env, 
@@ -132,6 +131,7 @@ def make_env(
         )
 
 def make_eval_env(level, record_dir = None):
+
     env = _wrap_env(
         retro.make(
             'SuperMarioWorld-Snes',

@@ -103,8 +103,22 @@ GRADUAL_SCHEDULE = [
     (1.00, {'YoshiIsland2': 0.1, 'DonutPlains1': 0.3, 'YoshiIsland3': 0.6}),
 ]
 
+SEQUENTIAL_SCHEDULE = [
+    (0.05, {'YoshiIsland2': 1.0}),     
+    (0.25, {'DonutPlains2': 1.0}),      
+    (0.28, {'YoshiIsland2': 1.0}),      
+    (0.58, {'VanillaDome5': 1.0}),      
+    (0.61, {'YoshiIsland2': 1.0}),      
+    (0.65, {'DonutPlains2': 1.0}),      
+    (0.85, {'ChocolateIsland3': 1.0}),  
+    (0.87, {'YoshiIsland2': 1.0}),      
+    (0.90, {'DonutPlains2': 1.0}),     
+    (1.00, {'ChocolateIsland3': 1.0}),  
+]
+
 SCHEDULES = {
     1: PROGRESSIVE_SCHEDULE,
     2: GRADUAL_SCHEDULE,
+    3: SEQUENTIAL_SCHEDULE,
 }
 

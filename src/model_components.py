@@ -88,7 +88,7 @@ class SpatialSoftmax(nn.Module):
         x = rearrange(x, 'b c h w -> b c (h w)')
         probs = F.softmax(x, dim=-1)
         
-        # Compute evaluated value of coord - (sum of prob * coord)
+        # Compute expected value of coord - (sum of prob * coord)
         get_expected_value = lambda coord: einsum(probs, coord, 'b c pos, pos -> b c')
 
         expected_x = get_expected_value(self.x_grid)

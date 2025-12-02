@@ -8,8 +8,8 @@ class RolloutBuffer:
         self.capacity = capacity
         self.idx = 0
 
-        self.states = t.zeros((capacity, num_envs, 4, 84, 84), dtype=t.uint8, device=device)
-        self.actions = t.zeros((capacity, num_envs), dtype=t.int64, device=device)
+        self.states = t.zeros((capacity, num_envs, 4, 84, 84), dtype=t.uint8, device=device) # Where is the 4 from ? 
+        self.actions = t.zeros((capacity, num_envs), dtype=t.int64, device=device) # Should it be num_envs capacity
         self.rewards = t.zeros((capacity, num_envs), dtype=t.float32, device=device)
         self.log_probs = t.zeros((capacity, num_envs), dtype=t.float32, device=device)
         self.values = t.zeros((capacity, num_envs), dtype=t.float32, device=device)
