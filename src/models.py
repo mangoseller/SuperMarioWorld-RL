@@ -89,6 +89,7 @@ class ImpalaWide(nn.Module):
                 nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+
         nn.init.orthogonal_(self.policy_head[-1].weight, gain=0.01)
         nn.init.orthogonal_(self.value_head.weight, gain=1.0)
         nn.init.orthogonal_(self.pixel_control_head.spatial[-2].weight, gain=1.0)

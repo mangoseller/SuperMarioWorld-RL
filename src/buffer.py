@@ -10,7 +10,7 @@ class RolloutBuffer:
 
         # (capacity, num_envs) as first dimension is time - we step through all environments in time at once
         self.states = t.zeros((capacity, num_envs, 4, 84, 84), dtype=t.uint8, device=device) # 4 frame stacking
-        self.actions = t.zeros((capacity, num_envs), dtype=t.int64, device=device)        
+        self.actions = t.zeros((capacity, num_envs), dtype=t.uint8, device=device)        
         self.rewards = t.zeros((capacity, num_envs), dtype=t.float32, device=device)
         self.log_probs = t.zeros((capacity, num_envs), dtype=t.float32, device=device)
         self.values = t.zeros((capacity, num_envs), dtype=t.float32, device=device)

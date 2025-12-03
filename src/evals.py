@@ -41,6 +41,7 @@ def _compute_stats(values, prefix):
 
 
 def evaluate(agent, record_dir='./evals', eval_levels=None):
+    agent.eval()
     levels = eval_levels or ['YoshiIsland2', 'YoshiIsland3', 'DonutPlains1', 'DonutPlains4', 'ChocolateIsland1']      
     all_rewards, all_lengths = [], []
     metrics = {}

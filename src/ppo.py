@@ -63,8 +63,8 @@ class PPO:
      
         distributions = Categorical(logits=logits)
         new_log_probs = distributions.log_prob(actions) # How likely is the action we took before under the new policy?
-
         old_log_probs = old_log_probs.detach()
+        # The point of this ratio is that we can learn from stale data, after the first update gradient update
         ratio = t.exp(new_log_probs - old_log_probs)
         unclipped_ratio = ratio * advantages
 
@@ -90,10 +90,12 @@ class PPO:
             pixel_control_loss = t.tensor(0.0, device=self.device)
 
         # C1 controls how much the shared weights 'care' about the value head, vs the action head, c2 controls how deterministic the model is
-        total_loss = (policy_loss + 
+        total_loss = (
+                     policy_loss + 
                      (self.c1 * value_loss) + 
                      (self.c2 * -entropy_loss) +
-                     (pixel_loss_weight * pixel_control_loss))
+                     (pixel_loss_weight * pixel_control_loss)
+            )
 
         diagnostics = {
             'policy_loss': policy_loss.item(),
@@ -106,19 +108,21 @@ class PPO:
         return total_loss, diagnostics
 
     def compute_advantages(self, buffer, next_state=None):
-        # Compute Generalized Advantage Returns (GAEs) 
+        # Compute Generalized Advantage Returns
         
         gamma = self.config.gamma # Future reward discounting factor
 
-        # Lambda controls bias/variance tradeoff - lambda small = high bias/low variance, the model strongly weights immediate rewards and value head predictions
-        # Lambda ~1 = Consider the actual observed rewards more strongly when judging how good a move was - high variance, low bias
+        """Lambda = GAE horizon. λ≈0 trust value head (high bias, low variance) 
+        λ≈1 trust true observed rewards (low bias, high variance)
+        λ=0.95 uses real rewards for ~20 steps then uses the value function"""
+
         lambda_ = self.config.lambda_gae 
 
         _, rewards, _, _, values, dones = buffer.get()
         
         values = values.detach()      
 
-        # Reshape to (Batch, Num_Envs) for GAE calculations; unscramble the data temporally
+        # Reshape to (Batch, Num_Envs) for GAE calculations
         reshape = lambda tensor: tensor.view(len(buffer), buffer.rewards.shape[1])
         
         rewards = reshape(rewards)
@@ -235,7 +239,6 @@ class PPO:
             time=current.shape[0],
             env=env_dim
         )
-
 
     def update(self, buffer, config, next_state=None):
  

@@ -77,13 +77,13 @@ def train(model_class, config, curriculum_option=None,
     
     pbar = tqdm(range(start_step, config.num_training_steps), disable=not config.show_progress)
     print("Compiling model for training...")
-
     agent = t.compile(original_agent)
-    policy.model = agent # Compiled model and original model share same underlying memory
+    policy.model = agent # Compiled model and original model parameters 
 
     entropy_boost = 1.0
     BOOST_MAGNITUDE = 3.0
     BOOST_DECAY = 0.0005
+
     policy.model.eval()
 
     for step in pbar:
@@ -107,9 +107,7 @@ def train(model_class, config, curriculum_option=None,
         policy.c2 = base_entropy * entropy_boost
         entropy_boost = max(1.0, entropy_boost - BOOST_DECAY)
         
-
-        
-        # Step environment
+        # Step environments
         actions, log_probs, values = policy.action_selection(state)
         td["action"] = get_torch_compatible_actions(actions)
         td = env.step(td) 
@@ -117,7 +115,7 @@ def train(model_class, config, curriculum_option=None,
         rewards = td["next"]["reward"]
         dones = td["next"]["done"] | td["next"].get("truncated", t.zeros_like(td["next"]["done"]))
         
-
+        # Store collected rollout
         buffer.store(
             state,
             rewards.squeeze(),
@@ -157,9 +155,11 @@ def train(model_class, config, curriculum_option=None,
             reset_td["_reset"] = dones.clone()
             # Reset finished environments
             reset_out = env.reset(reset_td.to('cpu')).to(state.device)
-            # Reshape dones (batch, 1) -> (batch, 1, 1, 1) to match the shape of the envs 
+
+       # Reshape dones (batch, 1) -> (batch, 1, 1, 1) for broadcasting with pixel tensors
             mask = rearrange(dones, 'b c -> b c 1 1')
-            # Apply the mask, reset completed environments
+
+        # For each env: use reset frame if done, else continue with next_state
             state = t.where(mask, reset_out["pixels"], next_state)
             td = reset_out
         else:

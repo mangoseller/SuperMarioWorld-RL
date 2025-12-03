@@ -17,7 +17,7 @@ class Discretizer(gym.ActionWrapper):
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action)) 
     
     def action(self, action):
-        return self._decode_discrete_action[action].copy() # Convert integer action into expected boolean arr of button presses
+        return self._decode_discrete_action[action].copy()
 
 
 class FrameSkipAndTermination(gym.Wrapper):
