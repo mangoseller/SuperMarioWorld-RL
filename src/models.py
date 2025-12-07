@@ -81,7 +81,7 @@ class ImpalaWide(nn.Module):
         return policy, value
 
     def _init_weights(self):
-        """Orthogonal init preserves norms to help mitigate vanishing/exploding gradients,
+        """Orthogonal init preserves grad norms to help mitigate vanishing/exploding gradients,
         gain is set to 0.01 for the policy head - near-uniform probalility over actions encourages early exploration"""
 
         for m in self.modules():

@@ -214,10 +214,9 @@ class PPO:
             
     
 
-        # Compute pixel-wise absolute differences, averaged over channels 
+        # Compute pixel-wise absolute differences, averaged over the 4 frame stacks 
         diff = t.abs(next_obs - current).mean(dim=2)
-        diff = diff * (1 - expanded_dones.float()) # Difference is zero at episode boundaries - Nothing for the model to learn
-                
+        diff = diff * (1 - expanded_dones.float()) # Difference is zero at episode boundaries
         """Merge time and env into a single batch dimension, and add a channel dimension
          We want to treat each (time, env) pair as a seperate sample in the batch
          (time, env, height, width) -> (time*env, 1, height, width), channels = 1, 

@@ -130,7 +130,7 @@ class PixelControlHead(nn.Module):
         x = rearrange(x, 'b (c h w) -> b c h w', c=self.channels, h=self.grid_size)
         x = self.spatial(x)
 
-        # Remove channel dim, since we predict only the change in pixel magnitude for each position, which is a real number
+        # Remove channel dim, since we predict the average change in pixel magnitude for each position, which is a real number
         return rearrange(x, 'b 1 h w -> b h w')
 
 
