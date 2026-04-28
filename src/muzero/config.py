@@ -81,6 +81,7 @@ class MuZeroConfig:
     min_replay_transitions: int = 10_000
     gradient_clip_norm: float = 1.0
     checkpoint_freq: int = 50_000
+    checkpoint_keep_last: int = 2
     log_freq: int = 1_000
     reanalyse_interval: int = 1
     max_pending_reanalyse: int = 2

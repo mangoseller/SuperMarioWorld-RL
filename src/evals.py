@@ -1,6 +1,7 @@
-import copy 
+import copy
 import numpy as np
 import os
+import shutil
 import torch as t
 import wandb
 from datetime import datetime
@@ -111,6 +112,13 @@ def run_evaluation(policy, tracking, config, run, step, curriculum=None):
         wandb.log(metrics)
         artifact = wandb.Artifact(f"{config.architecture}_ep{episode_num}_{timestamp}", type="eval_videos")
         artifact.add_dir(eval_dir)
-        run.log_artifact(artifact)
+        logged = run.log_artifact(artifact)
+        # Block until the upload finishes so we don't delete files mid-transfer.
+        try:
+            logged.wait()
+        except Exception as exc:
+            print(f"Warning: artifact upload wait failed ({exc}); leaving {eval_dir} on disk.")
+        else:
+            shutil.rmtree(eval_dir, ignore_errors=True)
 
     tracking['last_eval_step'] = step

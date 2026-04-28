@@ -1,4 +1,5 @@
 import gymnasium as gym
+import numpy as np
 
 
 REWARD_CONFIG = {
@@ -194,14 +195,17 @@ class ComposedRewardWrapper(gym.Wrapper):
             'midway': MidwayFlagReward(),
             'level_complete': LevelCompleteReward(),
         }
+
+    def _write_progress_info(self, info):
+        movement = self.components['movement']
+        info['_global_x'] = np.asarray(movement.global_x, dtype=np.float32)
+        info['_max_x'] = np.asarray(movement.max_x, dtype=np.float32)
     
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
         for name, component in self.components.items():
             component.reset(info)
-        movement = self.components['movement']
-        info['_global_x'] = movement.global_x
-        info['_max_x'] = movement.max_x
+        self._write_progress_info(info)
         
         return obs, info
 
@@ -213,9 +217,7 @@ class ComposedRewardWrapper(gym.Wrapper):
         reward -= self.components['damage'].calculate(info, terminated=terminated)
         reward -= self.components['life_loss'].calculate(info)
         reward += self.components['movement'].calculate(info)
-        movement = self.components['movement']
-        info['_global_x'] = movement.global_x
-        info['_max_x'] = movement.max_x
+        self._write_progress_info(info)
         reward += self.components['coins'].calculate(info)
         reward += self.components['score'].calculate(info)
         reward += self.components['midway'].calculate(info)

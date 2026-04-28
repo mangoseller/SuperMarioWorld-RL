@@ -1,7 +1,9 @@
 import argparse
 from contextlib import nullcontext
+import glob
 import multiprocessing as mp
 import os
+import shutil
 import time
 import warnings
 warnings.filterwarnings("ignore")
@@ -46,7 +48,6 @@ def save_muzero_checkpoint(network, ema_encoder, optimizer, scheduler,
                            tracking, config, step, rnd=None, plr=None):
     checkpoint_dir = "model_checkpoints"
     os.makedirs(checkpoint_dir, exist_ok=True)
-    tracking["last_checkpoint_step"] = step
     checkpoint = {
         "network_state_dict": network.state_dict(),
         "ema_encoder_state_dict": ema_encoder.target.state_dict(),
@@ -61,8 +62,110 @@ def save_muzero_checkpoint(network, ema_encoder, optimizer, scheduler,
     if plr is not None:
         checkpoint["plr_state_dict"] = plr.state_dict()
     path = os.path.join(checkpoint_dir, f"{config.architecture}_ep{tracking['episodes']}.pt")
-    t.save(checkpoint, path)
+    # Drop any stale partial-writes from a prior crash before consuming more disk.
+    for stale in glob.glob(os.path.join(checkpoint_dir, f"{config.architecture}_ep*.pt*.tmp")):
+        try:
+            os.remove(stale)
+        except OSError:
+            pass
+    keep_last = max(int(getattr(config, "checkpoint_keep_last", 2)), 1)
+    estimated_bytes = _estimate_checkpoint_bytes(checkpoint, checkpoint_dir, config.architecture)
+    needed_bytes = int(estimated_bytes * 1.2) + 64 * 1024 * 1024
+    tmp_path = f"{path}.{os.getpid()}.tmp"
+    try:
+        _ensure_disk_space(checkpoint_dir, config.architecture, needed_bytes, keep_last)
+        t.save(checkpoint, tmp_path)
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        print(f"Skipping checkpoint save after error: {exc}")
+        return None
+    tracking["last_checkpoint_step"] = step
+    _prune_old_checkpoints(checkpoint_dir, config.architecture, keep_last=keep_last)
     return path
+
+
+def _list_arch_checkpoints(checkpoint_dir, architecture):
+    pattern = os.path.join(checkpoint_dir, f"{architecture}_ep*.pt")
+    paths = glob.glob(pattern)
+    def _ep(path):
+        name = os.path.basename(path)
+        try:
+            return int(name.rsplit("_ep", 1)[1].split(".pt", 1)[0])
+        except (IndexError, ValueError):
+            return -1
+    paths.sort(key=_ep)
+    return paths
+
+
+def _estimate_checkpoint_bytes(checkpoint, checkpoint_dir, architecture):
+    existing = _list_arch_checkpoints(checkpoint_dir, architecture)
+    if existing:
+        try:
+            return max(os.path.getsize(p) for p in existing)
+        except OSError:
+            pass
+    total = 0
+    def _walk(obj):
+        nonlocal total
+        if isinstance(obj, t.Tensor):
+            total += obj.numel() * obj.element_size()
+        elif isinstance(obj, dict):
+            for v in obj.values():
+                _walk(v)
+        elif isinstance(obj, (list, tuple)):
+            for v in obj:
+                _walk(v)
+    _walk(checkpoint)
+    return int(total * 1.05) + 1024 * 1024
+
+
+def _ensure_disk_space(checkpoint_dir, architecture, needed_bytes, keep_last):
+    free_bytes = shutil.disk_usage(checkpoint_dir).free
+    if free_bytes >= needed_bytes:
+        return
+    existing = _list_arch_checkpoints(checkpoint_dir, architecture)
+    # Drop the oldest first; never touch the most recent until forced.
+    deletable = existing[:-1] if len(existing) > 0 else []
+    while free_bytes < needed_bytes and deletable:
+        old = deletable.pop(0)
+        try:
+            sz = os.path.getsize(old)
+            os.remove(old)
+            free_bytes += sz
+            print(f"Removed old checkpoint to free space: {old}")
+        except OSError as exc:
+            print(f"Could not remove {old}: {exc}")
+    if free_bytes < needed_bytes and existing:
+        # Last resort: drop the most recent too. The new save will replace it.
+        old = existing[-1]
+        try:
+            sz = os.path.getsize(old)
+            os.remove(old)
+            free_bytes += sz
+            print(f"Removed most recent checkpoint to free space: {old}")
+        except OSError as exc:
+            print(f"Could not remove {old}: {exc}")
+    if free_bytes < needed_bytes:
+        raise RuntimeError(
+            f"Insufficient disk space at {checkpoint_dir}: "
+            f"{free_bytes / 1e9:.2f} GB free, need {needed_bytes / 1e9:.2f} GB."
+        )
+
+
+def _prune_old_checkpoints(checkpoint_dir, architecture, keep_last):
+    if keep_last <= 0:
+        return
+    existing = _list_arch_checkpoints(checkpoint_dir, architecture)
+    for old in existing[:-keep_last]:
+        try:
+            os.remove(old)
+        except OSError as exc:
+            print(f"Could not remove old checkpoint {old}: {exc}")
 
 
 def load_muzero_checkpoint(path, network, ema_encoder, optimizer=None,
@@ -546,7 +649,8 @@ class _AsyncMuZeroTrainer:
             if self.config.USE_WANDB:
                 import wandb
                 wandb.finish()
-            print(f"Saved MuZero checkpoint: {path}")
+            if path is not None:
+                print(f"Saved MuZero checkpoint: {path}")
 
         return self.network
 
