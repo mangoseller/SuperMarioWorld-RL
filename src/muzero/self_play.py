@@ -112,6 +112,62 @@ def _obs_from_payload(payload):
     return obs.float() / 255.0
 
 
+def _tensor_payload(tensor):
+    array = tensor.detach().cpu().contiguous().numpy()
+    return {
+        "shape": tuple(array.shape),
+        "dtype": str(array.dtype),
+        "data": array.tobytes(),
+    }
+
+
+def _tensor_from_payload(payload):
+    array = np.frombuffer(
+        payload["data"],
+        dtype=np.dtype(payload["dtype"]),
+    ).copy()
+    return t.from_numpy(array.reshape(payload["shape"]))
+
+
+def _trajectory_payload(trajectory):
+    return {
+        "obs": _tensor_payload(trajectory.obs),
+        "actions": _tensor_payload(trajectory.actions),
+        "rewards": _tensor_payload(trajectory.rewards),
+        "dones": _tensor_payload(trajectory.dones),
+        "policy_targets": _tensor_payload(trajectory.policy_targets),
+        "value_targets": _tensor_payload(trajectory.value_targets),
+        "value_errors": (
+            _tensor_payload(trajectory.value_errors)
+            if trajectory.value_errors is not None else None
+        ),
+        "level": trajectory.level,
+        "x_max": float(trajectory.x_max),
+        "episode_return": float(trajectory.episode_return),
+        "worker_type": trajectory.worker_type,
+    }
+
+
+def _trajectory_from_payload(payload):
+    value_errors = payload.get("value_errors")
+    return Trajectory(
+        obs=_tensor_from_payload(payload["obs"]),
+        actions=_tensor_from_payload(payload["actions"]).long(),
+        rewards=_tensor_from_payload(payload["rewards"]).float(),
+        dones=_tensor_from_payload(payload["dones"]).bool(),
+        policy_targets=_tensor_from_payload(payload["policy_targets"]).float(),
+        value_targets=_tensor_from_payload(payload["value_targets"]).float(),
+        level=payload["level"],
+        x_max=float(payload["x_max"]),
+        episode_return=float(payload.get("episode_return", 0.0)),
+        worker_type=payload.get("worker_type", ""),
+        value_errors=(
+            _tensor_from_payload(value_errors).float()
+            if value_errors is not None else None
+        ),
+    )
+
+
 def _resolve_device(device):
     device = t.device(device)
     if device.type == "cuda" and not t.cuda.is_available():
@@ -128,7 +184,7 @@ def _autocast_for(device, enabled=True):
 def _extract_x(info):
     if not isinstance(info, dict):
         return 0.0
-    for key in ("_global_x", "global_x", "xpos", "x"):
+    for key in ("_max_x", "max_x", "_global_x", "global_x", "xpos", "x"):
         if key in info:
             value = info[key]
             if isinstance(value, t.Tensor):
@@ -139,7 +195,7 @@ def _extract_x(info):
 
 def _td_info(td):
     info = {}
-    for key in ("_global_x", "global_x", "xpos", "x"):
+    for key in ("_max_x", "max_x", "_global_x", "global_x", "xpos", "x"):
         try:
             value = td.get(key, None)
         except TypeError:
@@ -160,7 +216,7 @@ class TorchRLEnvAdapter:
         return self.td["observation"].squeeze(0), _td_info(self.td)
 
     def step(self, action):
-        self.td["action"] = get_torch_compatible_actions(t.tensor([action]), self.num_actions)
+        self.td["action"] = get_torch_compatible_actions(t.tensor(action), self.num_actions)
         self.td = self.env.step(self.td)
         next_td = self.td["next"]
         obs = next_td["observation"].squeeze(0)
@@ -473,7 +529,7 @@ def _worker_loop_batched(config, worker_id, profile, env_factory, level,
                     "type": "trajectory",
                     "worker_id": worker_id,
                     "weight_step": latest_step,
-                    "trajectory": trajectory,
+                    "trajectory_payload": _trajectory_payload(trajectory),
                 },
                 shutdown,
             )
@@ -546,7 +602,7 @@ def _worker_loop(config, worker_id, profile, env_factory, network_factory,
                 "type": "trajectory",
                 "worker_id": worker_id,
                 "weight_step": latest_step,
-                "trajectory": trajectory,
+                "trajectory_payload": _trajectory_payload(trajectory),
             }
             while not shutdown.is_set():
                 try:
@@ -661,9 +717,12 @@ class SelfPlayProcessGroup:
     def get_trajectory(self, timeout=None):
         self.check_health()
         try:
-            return self.trajectory_queue.get(timeout=timeout)
+            item = self.trajectory_queue.get(timeout=timeout)
         except queue.Empty:
             return None
+        if item is not None and "trajectory_payload" in item:
+            item["trajectory"] = _trajectory_from_payload(item.pop("trajectory_payload"))
+        return item
 
     def check_health(self):
         failed = [

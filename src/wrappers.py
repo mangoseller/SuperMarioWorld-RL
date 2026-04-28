@@ -77,6 +77,6 @@ class MaxStepWrapper(gym.Wrapper):
         
         if self.step_count >= self.max_steps:
             truncated = True
-            reward += self.penalty
+            reward -= self.penalty
         
         return obs, reward, terminated, truncated, info

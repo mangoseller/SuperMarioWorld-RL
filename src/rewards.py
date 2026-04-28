@@ -4,11 +4,11 @@ import gymnasium as gym
 REWARD_CONFIG = {
     'movement_reward': 0.025,
     'step_penalty': 0.002,
-    'damage_penalty': 3,
+    'damage_penalty': 3.0,
     'life_loss_penalty': 8.0,
     'max_steps_penalty': 15.0,
-    'coin_reward': 0.3,
-    'score_reward': 0.009,
+    'coin_reward': 0.0,
+    'score_reward': 0.0,
     'midway_reward': 25.0,
     'level_complete_reward': 60.0,
 }
@@ -58,6 +58,14 @@ class MovementReward:
         if self.stuck_steps > self.stuck_threshold:
             return abs(delta) * (self.scale * 0.1) # Reward any movement, just try something different
         return 0.0
+
+    @property
+    def global_x(self):
+        return self._global_x
+
+    @property
+    def max_x(self):
+        return self._max_x
 
 
 
@@ -202,9 +210,14 @@ class ComposedRewardWrapper(gym.Wrapper):
         reward -= self.components['damage'].calculate(info, terminated=terminated)
         reward -= self.components['life_loss'].calculate(info)
         reward += self.components['movement'].calculate(info)
+        movement = self.components['movement']
+        info['_global_x'] = movement.global_x
+        info['_max_x'] = movement.max_x
         reward += self.components['coins'].calculate(info)
         reward += self.components['score'].calculate(info)
         reward += self.components['midway'].calculate(info)
         reward += self.components['level_complete'].calculate(info)
+        if truncated and not terminated:
+            reward -= REWARD_CONFIG['max_steps_penalty']
         
         return obs, reward, terminated, truncated, info
