@@ -13,7 +13,7 @@ from ppo import PPO
 def _run_episode(agent, env):
     # Run 1 eval episode, return (total_reward, length)
     td = env.reset()
-    state = td["pixels"]
+    state = td["observation"]
     reward_sum, length = 0.0, 0
     
     while True:
@@ -26,7 +26,7 @@ def _run_episode(agent, env):
         
         if td["next"]["done"].item():
             break
-        state = td["next"]["pixels"]
+        state = td["next"]["observation"]
     
     return reward_sum, length
 
@@ -41,7 +41,7 @@ def _compute_stats(values, prefix):
 
 
 def evaluate(agent, record_dir='./evals', eval_levels=None):
-    agent.eval()
+    agent.model.eval()
     levels = eval_levels or ['YoshiIsland2', 'YoshiIsland3', 'DonutPlains1', 'DonutPlains4', 'ChocolateIsland1']      
     all_rewards, all_lengths = [], []
     metrics = {}

@@ -80,8 +80,8 @@ IMPALAWIDE_TRAIN_CONFIG = TrainingConfig(
     c2=0.02,
     gamma=0.998,
     lambda_gae=0.95,
-    num_envs=16,
-    steps_per_env=512,  
+    num_envs=1,
+    steps_per_env=4096,  
     num_training_steps=4_000_000,
     eval_freq=200_000,
     show_progress=True,
@@ -125,23 +125,25 @@ IMPALAWIDE_TEST_CONFIG = TrainingConfig(
     show_progress=True,
     USE_WANDB=False
 )
-
 IMPALA_TRAIN_CONFIG = TrainingConfig(
     architecture='ImpalaLike',
     lr_schedule='linear',
-    learning_rate=2.5e-4,
+    learning_rate=2.0e-4,
     min_lr=1e-6,
     epochs=3,
     clip_eps=0.2,
     c1=0.5,
     c2=0.02,
-    num_envs=16,
-    steps_per_env=512,
+    gamma=0.998,
+    lambda_gae=0.95,
+    num_envs=1,
+    steps_per_env=4096,  
     num_training_steps=4_000_000,
     eval_freq=200_000,
     show_progress=True,
     USE_WANDB=True
 )
+
 
 
 IMPALA_TEST_CONFIG = TrainingConfig(

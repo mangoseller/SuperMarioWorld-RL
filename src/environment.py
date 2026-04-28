@@ -5,9 +5,10 @@ from torchrl.envs.transforms import (
     GrayScale,
     CatFrames,
     StepCounter,
-    RewardSum, 
+    RewardSum,
     Compose,
-    UnsqueezeTransform
+    UnsqueezeTransform,
+    RenameTransform
 )
 import retro
 import gymnasium as gym
@@ -49,7 +50,9 @@ class MockRetro(gym.Env):
     spawned we are then safe to call retro.make and create our environments as needed."""
 
     observation_space = gym.spaces.Box(0, 1, (4, 84, 84), np.float32)
+    observation_space = gym.spaces.Box(0, 255, (224, 256, 3), np.uint8)
     action_space = gym.spaces.Discrete(14)
+    buttons = ['B', 'Y', 'SELECT', 'START', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'A', 'X', 'L', 'R']
 
     def reset(self, **_): return self.observation_space.sample(), {}
     def step(self, _): return self.observation_space.sample(), 0.0, False, False, {}
@@ -61,7 +64,7 @@ def _wrap_env(env, skip=4, record=False, record_dir=None):
     wrapped_env = Discretizer(env, MARIO_ACTIONS) # Actions
     wrapped_env = ComposedRewardWrapper(wrapped_env) # Reward
     wrapped_env = FrameSkipAndTermination(wrapped_env, skip=skip) # Dones
-    wrapped_env = MaxStepWrapper(wrapped_env, max_steps=8000)
+    wrapped_env = MaxStepWrapper(wrapped_env, max_steps=12000)
     
     if record:
         wrapped_env = RecordVideo(
@@ -73,11 +76,12 @@ def _wrap_env(env, skip=4, record=False, record_dir=None):
     
     wrapped_env = GymWrapper(wrapped_env)
     return TransformedEnv(wrapped_env, Compose([
-        ToTensorImage(),
-        Resize(84, 84, interpolation=InterpolationMode.NEAREST),
-        GrayScale(),
-        CatFrames(N=4, dim=-3),
-    ]))
+    ToTensorImage(),
+    Resize(84, 84, interpolation=InterpolationMode.NEAREST),
+    GrayScale(),
+    CatFrames(N=4, dim=-3),
+    RenameTransform(in_keys=["pixels"], out_keys=["observation"]),
+]))
 
 
 
@@ -104,7 +108,7 @@ def make_env(
             UnsqueezeTransform(
                 dim=0, 
                 allow_positive_dim=True,
-                in_keys=["pixels", "reward", "done", "terminated"]
+                in_keys=["observation", "reward", "done", "terminated"]
             )
         )
 
@@ -145,7 +149,7 @@ def make_eval_env(level, record_dir = None):
         UnsqueezeTransform(
             dim=0,
             allow_positive_dim=True, 
-            in_keys=["pixels", "reward", "done", "terminated"]
+            in_keys=["observation", "reward", "done", "terminated"]
         )
     )
 

@@ -96,6 +96,7 @@ def run_training():
     parser.add_argument('--curriculum_option', type=int, default=None)
     parser.add_argument('--total_steps', type=int, default=None)
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file')
+    parser.add_argument('--async', dest='use_async', action='store_true', help='Use async training (overlapped collection + training)')
     args = parser.parse_args()
     
     if args.model is None:
@@ -146,11 +147,24 @@ def run_training():
         config = replace(config, num_training_steps=args.total_steps)
 
 
-    from train import train # Avoid circular imports
-    train(
-        model_class, 
-        config, 
-        curriculum_option=curriculum_option,
-        checkpoint_path=args.checkpoint if args.mode in ('resume', 'finetune') else None,
-        resume=(args.mode == 'resume'),
-    )
+    checkpoint = args.checkpoint if args.mode in ('resume', 'finetune') else None
+    is_resume = (args.mode == 'resume')
+
+    if args.use_async:
+        from async_train import train_async
+        train_async(
+            model_class,
+            config,
+            curriculum_option=curriculum_option,
+            checkpoint_path=checkpoint,
+            resume=is_resume,
+        )
+    else:
+        from train import train
+        train(
+            model_class,
+            config,
+            curriculum_option=curriculum_option,
+            checkpoint_path=checkpoint,
+            resume=is_resume,
+        )

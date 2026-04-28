@@ -319,7 +319,7 @@ class PPO:
                 key: np.mean([d[key] for d in all_diagnostics])
                 for key in all_diagnostics[0].keys()
             }
-            self.eval() # Disable data augmentation for rollout collection again
+            self.model.eval() # Disable data augmentation for rollout collection again
             return averaged_diagnostics
     
     def get_current_lr(self):

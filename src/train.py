@@ -72,7 +72,7 @@ def train(model_class, config, curriculum_option=None,
     
     buffer = RolloutBuffer(config.steps_per_env, config.num_envs, device)
     td = env.reset()
-    state = td['pixels']    
+    state = td['observation']
     print(f"Training {config.architecture} | {sum(p.numel() for p in original_agent.parameters()):,} params | {device}")
     
     pbar = tqdm(range(start_step, config.num_training_steps), disable=not config.show_progress)
@@ -93,7 +93,7 @@ def train(model_class, config, curriculum_option=None,
             env.close()
             env, level_dist = make_env_for_curriculum(curriculum, config)
             td = env.reset()
-            state = td['pixels']
+            state = td['observation']
 
             buffer.clear()
             tracking['current_episode_rewards'] = [0.0] * config.num_envs
@@ -111,7 +111,7 @@ def train(model_class, config, curriculum_option=None,
         actions, log_probs, values = policy.action_selection(state)
         td["action"] = get_torch_compatible_actions(actions)
         td = env.step(td) 
-        next_state = td["next"]["pixels"]
+        next_state = td["next"]["observation"]
         rewards = td["next"]["reward"]
         dones = td["next"]["done"] | td["next"].get("truncated", t.zeros_like(td["next"]["done"]))
         
@@ -160,19 +160,19 @@ def train(model_class, config, curriculum_option=None,
             mask = rearrange(dones, 'b c -> b c 1 1')
 
         # For each env: use reset frame if done, else continue with next_state
-            state = t.where(mask, reset_out["pixels"], next_state)
+            state = t.where(mask, reset_out["observation"], next_state)
             td = reset_out
         else:
             state = next_state
         
-        # Evaluation and checkpoint
-        if step - tracking['last_eval_step'] >= config.eval_freq:
+        # Evaluation and checkpoint (eval_freq is in total env steps across all envs)
+        if tracking['total_env_steps'] - tracking['last_eval_step'] >= config.eval_freq:
             save_checkpoint(original_agent, policy, tracking, config, run, step, curriculum_option)
             policy.model = original_agent # Use non-compiled model for evals
             run_evaluation(policy, tracking, config, run, step, curriculum)
             policy.model = agent
             print(f"Eval + checkpoint at step {step}")
-            tracking['last_eval_step'] = step
+            tracking['last_eval_step'] = tracking['total_env_steps']
         
         # PPO update
         if buffer.idx == buffer.capacity:

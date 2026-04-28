@@ -86,14 +86,10 @@ ALL_LEVELS = [
 ]
 
 PROGRESSIVE_SCHEDULE = [
-    (0.05, {'YoshiIsland2': 1.0}),
-    (0.15, {'YoshiIsland2': 0.8, 'YoshiIsland3': 0.2}),
-    (0.25, {'YoshiIsland2': 0.4, 'YoshiIsland3': 0.6}),
-    (0.35, {'YoshiIsland2': 0.1, 'YoshiIsland3': 0.75, 'VanillaDome5': 0.15}),
-    (0.50, {'YoshiIsland2': 0.1, 'YoshiIsland3': 0.45, 'VanillaDome5': 0.45}),
-    (0.65, {'YoshiIsland3': 0.2, 'VanillaDome5': 0.65, 'ChocolateIsland3': 0.15}),
-    (0.85, {'YoshiIsland3': 0.1, 'VanillaDome5': 0.45, 'ChocolateIsland3': 0.45}),
-    (1.00, {'YoshiIsland3': 0.05, 'VanillaDome5': 0.25, 'ChocolateIsland3': 0.7}),
+    (0.10, {'YoshiIsland2': 1.0}),
+    (0.4, {'YoshiIsland3': 0.6}),
+    (0.75, {'VanillaDome5': 0.15}),
+    (1.00, {'ChocolateIsland3': 0.7}),
 ]
 GRADUAL_SCHEDULE = [
     (0.30, {'YoshiIsland2': 1.0}),

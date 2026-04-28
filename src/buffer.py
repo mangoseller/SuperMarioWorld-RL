@@ -50,6 +50,17 @@ class RolloutBuffer:
 
             return (state_tensor,) + others
 
+    def to(self, device):
+        """Move all buffer tensors to a new device (returns self)."""
+        self.device = device
+        self.states = self.states.to(device)
+        self.actions = self.actions.to(device)
+        self.rewards = self.rewards.to(device)
+        self.log_probs = self.log_probs.to(device)
+        self.values = self.values.to(device)
+        self.dones = self.dones.to(device)
+        return self
+
     def clear(self):
         self.idx = 0 # Will overwrite previous data
  

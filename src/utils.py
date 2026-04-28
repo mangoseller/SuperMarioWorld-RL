@@ -50,6 +50,107 @@ def log_training_metrics(tracking, diagnostics, policy, config, step):
     if config.USE_WANDB:
         wandb.log(metrics, step=step)
 
+    return metrics
+
+
+def _mean(values):
+    if values is None or len(values) == 0:
+        return 0
+    return float(np.mean(values))
+
+
+def _metric_value(value):
+    if isinstance(value, t.Tensor):
+        if value.numel() != 1:
+            return None
+        return float(value.detach().cpu().item())
+    if isinstance(value, np.generic):
+        return float(value)
+    if isinstance(value, (int, float, bool)):
+        return value
+    return None
+
+
+def _add_prefixed(metrics, prefix, values):
+    if not values:
+        return
+    for key, value in values.items():
+        metric = _metric_value(value)
+        if metric is not None:
+            metrics[f"{prefix}/{key}"] = metric
+
+
+def log_muzero_metrics(tracking=None, diagnostics=None, replay=None,
+                       self_play=None, reanalyse=None, search=None,
+                       optimizer=None, config=None, step=None,
+                       eval_stats=None, plr_stats=None, rnd_coef=None):
+    tracking = tracking or {}
+    diagnostics = diagnostics or {}
+    metrics = {
+        "train/mean_episode_return": _mean(tracking.get("episode_returns", [])),
+        "train/mean_episode_length": _mean(tracking.get("episode_lengths", [])),
+        "train/mean_x_max": _mean(tracking.get("x_max", [])),
+        "train/episodes": tracking.get("episodes", 0),
+        "train/env_steps": tracking.get("env_steps", 0),
+        "train/gradient_steps": tracking.get("gradient_steps", 0),
+    }
+    for worker_type, count in tracking.get("worker_type_counts", {}).items():
+        metrics[f"self_play/worker_type/{worker_type}/episodes"] = count
+
+    loss_keys = ("total", "dynamics", "reward", "value", "policy", "rnd")
+    for key in loss_keys:
+        metric = _metric_value(diagnostics.get(f"{key}_loss", diagnostics.get(key)))
+        if metric is not None:
+            metrics[f"loss/{key}"] = metric
+
+    _add_prefixed(metrics, "self_play", self_play)
+    _add_prefixed(metrics, "reanalyse", reanalyse)
+    _add_prefixed(metrics, "search", search)
+
+    if replay is not None:
+        metrics.update({
+            "replay/transitions": len(replay),
+            "replay/trajectories": replay.num_trajectories,
+            "replay/frontier_trajectories": replay.num_frontier_trajectories,
+        })
+        if replay.num_trajectories > 0:
+            metrics["replay/frontier_fraction"] = (
+                replay.num_frontier_trajectories / replay.num_trajectories
+            )
+        for level, stats in replay.frontier_stats().items():
+            metrics[f"replay/frontier/{level}/trajectories"] = stats["trajectories"]
+            metrics[f"replay/frontier/{level}/transitions"] = stats["transitions"]
+
+    if optimizer is not None and optimizer.param_groups:
+        metrics["hyperparams/learning_rate"] = optimizer.param_groups[0]["lr"]
+
+    if config is not None:
+        metrics.update({
+            "hyperparams/gamma": config.gamma,
+            "hyperparams/td_steps": config.td_steps,
+            "hyperparams/unroll_steps": config.unroll_steps,
+            "hyperparams/mcts_num_simulations": config.mcts_num_simulations,
+            "hyperparams/replay_beta": config.replay_beta,
+        })
+
+    if eval_stats:
+        for level, stats in eval_stats.items():
+            for k, v in stats.items():
+                metrics[f"eval/{level}/{k}"] = v
+
+    if plr_stats:
+        for level, stats in plr_stats.items():
+            for k, v in stats.items():
+                metrics[f"plr/{level}/{k}"] = v
+
+    if rnd_coef is not None:
+        metrics["hyperparams/rnd_coef"] = rnd_coef
+
+    if config is not None and getattr(config, "USE_WANDB", False):
+        wandb.log(metrics, step=step)
+
+    return metrics
+
 def save_checkpoint(agent, policy, tracking, config, run, step, curriculum_option=None):
 
     checkpoint_dir = "model_checkpoints"
@@ -106,16 +207,11 @@ def load_checkpoint(checkpoint_path, agent, policy, resume=False):
 
 
 def get_torch_compatible_actions(actions, num_actions=14): 
-    # Convert integer actions into one-hot format for torchrl
     onehot_actions = t.nn.functional.one_hot(actions, num_classes=num_actions).float()
     return onehot_actions
 
 
 def get_entropy(step, total_steps, max_entropy=0.02, min_entropy=0.005):
-  # Linearly decay entropy coefficient over training
     progress = step / total_steps
     current_entropy = max_entropy - (max_entropy - min_entropy) * progress
     return current_entropy
-
-
-
