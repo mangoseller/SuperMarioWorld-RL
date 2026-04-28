@@ -1,4 +1,5 @@
 from torchrl.envs import TransformedEnv, GymWrapper, ParallelEnv
+from torchrl.envs.gym_like import default_info_dict_reader
 from torchrl.envs.transforms import (
     ToTensorImage,
     Resize,
@@ -75,6 +76,9 @@ def _wrap_env(env, skip=4, record=False, record_dir=None):
         )
     
     wrapped_env = GymWrapper(wrapped_env)
+    wrapped_env.set_info_dict_reader(
+        default_info_dict_reader(["_global_x", "_max_x"], ignore_private=False)
+    )
     return TransformedEnv(wrapped_env, Compose([
     ToTensorImage(),
     Resize(84, 84, interpolation=InterpolationMode.NEAREST),
@@ -165,4 +169,3 @@ def get_level_distribution(level_distribution, level_weights, num_envs):
 })
 
     
-

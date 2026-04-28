@@ -86,9 +86,17 @@ def log_muzero_metrics(tracking=None, diagnostics=None, replay=None,
                        eval_stats=None, plr_stats=None, rnd_coef=None):
     tracking = tracking or {}
     diagnostics = diagnostics or {}
+    episode_returns = tracking.get("episode_returns", [])
+    episode_lengths = tracking.get("episode_lengths", [])
+    total_episode_steps = sum(episode_lengths)
+    mean_reward = (
+        float(sum(episode_returns) / total_episode_steps)
+        if total_episode_steps > 0 else 0.0
+    )
     metrics = {
-        "train/mean_episode_return": _mean(tracking.get("episode_returns", [])),
-        "train/mean_episode_length": _mean(tracking.get("episode_lengths", [])),
+        "train/mean_episode_return": _mean(episode_returns),
+        "train/mean_episode_length": _mean(episode_lengths),
+        "train/mean_reward": mean_reward,
         "train/mean_x_max": _mean(tracking.get("x_max", [])),
         "train/episodes": tracking.get("episodes", 0),
         "train/env_steps": tracking.get("env_steps", 0),

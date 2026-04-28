@@ -199,6 +199,9 @@ class ComposedRewardWrapper(gym.Wrapper):
         obs, info = self.env.reset(**kwargs)
         for name, component in self.components.items():
             component.reset(info)
+        movement = self.components['movement']
+        info['_global_x'] = movement.global_x
+        info['_max_x'] = movement.max_x
         
         return obs, info
 
