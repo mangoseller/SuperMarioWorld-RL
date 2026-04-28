@@ -45,7 +45,7 @@ class MuZeroConfig:
     x_percentile_window: int = 10_000
     weight_refresh_interval: int = 2_000
     reanalyse_batch_size: int = 256
-    priority_refresh_interval: int = 4
+    priority_refresh_interval: int = 16
 
     mcts_num_simulations: int = 32
     mcts_max_depth: int = 10

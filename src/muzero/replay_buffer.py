@@ -226,6 +226,8 @@ class DualPriorityReplayBuffer:
         n_frontier = int(round(batch_size * frontier_fraction))
         n_frontier = min(n_frontier, batch_size)
 
+        import time
+        _t0 = time.perf_counter()
         items = []
         if n_frontier > 0 and self.num_frontier_trajectories > 0:
             items.extend(self._sample_items(n_frontier, source="frontier", extra_steps=extra_steps))
@@ -233,8 +235,18 @@ class DualPriorityReplayBuffer:
         remaining = batch_size - len(items)
         if remaining > 0:
             items.extend(self._sample_items(remaining, source="main", extra_steps=extra_steps))
+        _t_items = time.perf_counter() - _t0
 
-        return self._build_batch(items, extra_steps)
+        _t0 = time.perf_counter()
+        batch = self._build_batch(items, extra_steps)
+        _t_build = time.perf_counter() - _t0
+
+        if not hasattr(self, "_sample_print_counter"):
+            self._sample_print_counter = 0
+        self._sample_print_counter += 1
+        if self._sample_print_counter % 50 == 0:
+            print(f"[sample n={self._sample_print_counter}] items={_t_items*1000:.0f}ms build={_t_build*1000:.0f}ms", flush=True)
+        return batch
 
     def update_targets(self, trajectory_ids, start_indices, policy_targets=None,
                        value_targets=None, value_errors=None):
