@@ -340,26 +340,50 @@ class _AsyncMuZeroTrainer:
         target_zs = rearrange(target_zs, '(b k) c h w -> b k c h w', b=b, k=unroll)
 
         z = self._encoder_c(obs[:, 0])
-        dynamics_losses, reward_losses = [], []
-        value_losses, policy_losses = [], []
+        z_states, z_nexts = [], []
 
         for step in range(unroll):
-            policy_logits = self._policy_c(z)
-            value_logits = self._value_c(z)
-            policy_losses.append(self._policy_loss(policy_logits, policy_targets[:, step]))
-            value_losses.append(self._value_loss(value_logits, value_targets[:, step]))
-
+            z_states.append(z)
             z_next = self._dynamics_c(z, actions[:, step])
-            reward_logits = self._reward_c(z_next)
-            reward_losses.append(self._reward_loss(reward_logits, rewards[:, step]))
-
-            dynamics_losses.append(self._dynamics_loss(z_next, target_zs[:, step]))
+            z_nexts.append(z_next)
             z = z_next
 
-        dynamics_loss = _weighted_mean(t.stack(dynamics_losses, dim=1), weights)
-        reward_loss = _weighted_mean(t.stack(reward_losses, dim=1), weights)
-        value_loss = _weighted_mean(t.stack(value_losses, dim=1), weights)
-        policy_loss = _weighted_mean(t.stack(policy_losses, dim=1), weights)
+        z_states = rearrange(t.stack(z_states, dim=1), "b k c h w -> (b k) c h w")
+        z_nexts = rearrange(t.stack(z_nexts, dim=1), "b k c h w -> (b k) c h w")
+        target_zs = rearrange(target_zs, "b k c h w -> (b k) c h w")
+        flat_policy_targets = rearrange(policy_targets, "b k a -> (b k) a")
+        flat_value_targets = rearrange(value_targets, "b k -> (b k)")
+        flat_rewards = rearrange(rewards[:, :unroll], "b k -> (b k)")
+
+        policy_losses = rearrange(
+            self._policy_loss(self._policy_c(z_states), flat_policy_targets),
+            "(b k) -> b k",
+            b=b,
+            k=unroll,
+        )
+        value_losses = rearrange(
+            self._value_loss(self._value_c(z_states), flat_value_targets),
+            "(b k) -> b k",
+            b=b,
+            k=unroll,
+        )
+        reward_losses = rearrange(
+            self._reward_loss(self._reward_c(z_nexts), flat_rewards),
+            "(b k) -> b k",
+            b=b,
+            k=unroll,
+        )
+        dynamics_losses = rearrange(
+            self._dynamics_loss(z_nexts, target_zs),
+            "(b k) -> b k",
+            b=b,
+            k=unroll,
+        )
+
+        dynamics_loss = _weighted_mean(dynamics_losses, weights)
+        reward_loss = _weighted_mean(reward_losses, weights)
+        value_loss = _weighted_mean(value_losses, weights)
+        policy_loss = _weighted_mean(policy_losses, weights)
         total_loss = dynamics_loss + reward_loss + value_loss + policy_loss
 
         if not t.isfinite(total_loss):
@@ -375,20 +399,29 @@ class _AsyncMuZeroTrainer:
 
     @t.no_grad()
     def _refresh_sample_priorities(self, batch):
-        obs = _as_float_obs(batch.obs[:, :self.config.unroll_steps], self.device)
+        row_idx = None
+        limit = int(getattr(self.config, "priority_refresh_batch_size", 0) or 0)
+        if 0 < limit < batch.obs.shape[0]:
+            row_idx = t.randperm(batch.obs.shape[0])[:limit]
+        obs_uint8 = batch.obs if row_idx is None else batch.obs[row_idx]
+        value_targets = batch.value_targets if row_idx is None else batch.value_targets[row_idx]
+        trajectory_ids = batch.trajectory_ids if row_idx is None else batch.trajectory_ids[row_idx]
+        start_indices = batch.start_indices if row_idx is None else batch.start_indices[row_idx]
+
+        obs = _as_float_obs(obs_uint8[:, :self.config.unroll_steps], self.device)
         b, k = obs.shape[:2]
         flat_obs = rearrange(obs, "b k c h w -> (b k) c h w")
         z = self._encoder_c(flat_obs)
         logits = self._value_c(z)
         values = self.network.value.predict(logits)
         values = rearrange(values, "(b k) -> b k", b=b, k=k).cpu()
-        errors = (values - batch.value_targets.float()).abs().clamp_min(self.config.priority_eps)
+        errors = (values - value_targets.float()).abs().clamp_min(self.config.priority_eps)
         self.replay.update_targets(
-            batch.trajectory_ids,
-            batch.start_indices,
+            trajectory_ids,
+            start_indices,
             value_errors=errors,
         )
-        for i, traj_id in enumerate(batch.trajectory_ids.tolist()):
+        for i, traj_id in enumerate(trajectory_ids.tolist()):
             level = self.replay.get_trajectory_level(int(traj_id))
             if level is not None:
                 self.plr.record_value_error(level, float(errors[i].mean()))
@@ -396,19 +429,24 @@ class _AsyncMuZeroTrainer:
     def _train_step(self):
         import time
         cuda = self.device.type == "cuda"
-        sync = (lambda: t.cuda.synchronize()) if cuda else (lambda: None)
+        next_grad = self._priority_refresh_counter + 1
+        profile_interval = int(getattr(self.config, "profile_train_interval", 0) or 0)
+        profile_step = profile_interval > 0 and next_grad % profile_interval == 0
+        sync = (lambda: t.cuda.synchronize()) if cuda and profile_step else (lambda: None)
         timings = {}
 
         t0 = time.perf_counter()
         batch = self.replay.sample_batch(self.config.batch_size, extra_steps=0)
-        timings["sample"] = time.perf_counter() - t0
+        if profile_step:
+            timings["sample"] = time.perf_counter() - t0
 
         t0 = time.perf_counter()
         self.optimizer.zero_grad(set_to_none=True)
         with self._autocast():
             total_loss, diagnostics = self._compute_loss(batch)
         sync()
-        timings["forward"] = time.perf_counter() - t0
+        if profile_step:
+            timings["forward"] = time.perf_counter() - t0
 
         t0 = time.perf_counter()
         total_loss.backward()
@@ -418,16 +456,18 @@ class _AsyncMuZeroTrainer:
         )
         self.optimizer.step()
         sync()
-        timings["backward_step"] = time.perf_counter() - t0
+        if profile_step:
+            timings["backward_step"] = time.perf_counter() - t0
 
         t0 = time.perf_counter()
         if self.scheduler is not None:
             self.scheduler.step()
         self.ema_encoder.update()
-        timings["ema"] = time.perf_counter() - t0
+        if profile_step:
+            timings["ema"] = time.perf_counter() - t0
 
         t0 = time.perf_counter()
-        self._priority_refresh_counter += 1
+        self._priority_refresh_counter = next_grad
         did_refresh = (
             self._priority_refresh_counter
             % max(1, self.config.priority_refresh_interval) == 0
@@ -435,16 +475,18 @@ class _AsyncMuZeroTrainer:
         if did_refresh:
             self._refresh_sample_priorities(batch)
             sync()
-        timings["refresh"] = time.perf_counter() - t0
+        if profile_step:
+            timings["refresh"] = time.perf_counter() - t0
 
         t0 = time.perf_counter()
         rnd_loss = self.rnd.train_step(batch.obs[:, 0])
         sync()
-        timings["rnd"] = time.perf_counter() - t0
+        if profile_step:
+            timings["rnd"] = time.perf_counter() - t0
 
         diagnostics["rnd_loss"] = rnd_loss
 
-        if self._priority_refresh_counter % 50 == 0:
+        if profile_step:
             total_ms = sum(timings.values()) * 1000
             parts = " ".join(
                 f"{k}={v*1000:.0f}ms({v*1000/total_ms*100:.0f}%)"
@@ -719,12 +761,18 @@ def _parse_args():
     parser.add_argument("--total_steps", type=int, default=None)
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--batch_size", type=int, default=None)
+    parser.add_argument("--dynamics_channels", type=int, default=None)
+    parser.add_argument("--dynamics_res_blocks", type=int, default=None)
+    parser.add_argument("--encoder_res_blocks", type=int, default=None)
     parser.add_argument("--mcts_sims", type=int, default=None)
     parser.add_argument("--mcts_depth", type=int, default=None)
     parser.add_argument("--mcts_backend", type=str, default=None, choices=("tensor", "python"))
     parser.add_argument("--max_episode_steps", type=int, default=None)
     parser.add_argument("--min_replay_transitions", type=int, default=None)
     parser.add_argument("--train_steps_per_iter", type=int, default=None)
+    parser.add_argument("--priority_refresh_interval", type=int, default=None)
+    parser.add_argument("--priority_refresh_batch_size", type=int, default=None)
+    parser.add_argument("--profile_train_interval", type=int, default=None)
     parser.add_argument("--search_batch_size", type=int, default=None)
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--resume", action="store_true")
@@ -753,6 +801,12 @@ def main():
     if args.batch_size is not None:
         updates["batch_size"] = args.batch_size
         updates["reanalyse_batch_size"] = args.batch_size
+    if args.dynamics_channels is not None:
+        updates["dynamics_channels"] = args.dynamics_channels
+    if args.dynamics_res_blocks is not None:
+        updates["dynamics_res_blocks"] = args.dynamics_res_blocks
+    if args.encoder_res_blocks is not None:
+        updates["encoder_res_blocks"] = args.encoder_res_blocks
     if args.mcts_sims is not None:
         updates["mcts_num_simulations"] = args.mcts_sims
     if args.mcts_depth is not None:
@@ -765,6 +819,12 @@ def main():
         updates["min_replay_transitions"] = args.min_replay_transitions
     if args.train_steps_per_iter is not None:
         updates["train_steps_per_iter"] = args.train_steps_per_iter
+    if args.priority_refresh_interval is not None:
+        updates["priority_refresh_interval"] = args.priority_refresh_interval
+    if args.priority_refresh_batch_size is not None:
+        updates["priority_refresh_batch_size"] = args.priority_refresh_batch_size
+    if args.profile_train_interval is not None:
+        updates["profile_train_interval"] = args.profile_train_interval
     if args.search_batch_size is not None:
         updates["self_play_search_batch_size"] = args.search_batch_size
     if args.device is not None:

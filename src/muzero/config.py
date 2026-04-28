@@ -46,6 +46,8 @@ class MuZeroConfig:
     weight_refresh_interval: int = 2_000
     reanalyse_batch_size: int = 256
     priority_refresh_interval: int = 16
+    # 0 means refresh the full sampled training batch.
+    priority_refresh_batch_size: int = 0
 
     mcts_num_simulations: int = 32
     mcts_max_depth: int = 10
@@ -88,6 +90,8 @@ class MuZeroConfig:
     train_steps_per_iter: int = 4
     use_amp: bool = True
     use_compile: bool = True
+    # 0 disables synchronized train-step profiling. Positive values print every N grads.
+    profile_train_interval: int = 0
     progress_refresh_sec: float = 0.5
     USE_WANDB: bool = False
     wandb_project: str = "marioRL"
@@ -146,8 +150,8 @@ def first_real_run_config():
         self_play_search_batch_size=32,
         self_play_search_queue_size=256,
         self_play_trajectory_queue_size=64,
-        batch_size=512,
-        reanalyse_batch_size=512,
+        batch_size=256,
+        reanalyse_batch_size=256,
         min_replay_transitions=20_000,
         train_steps_per_iter=7,
         plr_initial_levels=4,
