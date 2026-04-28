@@ -394,24 +394,64 @@ class _AsyncMuZeroTrainer:
                 self.plr.record_value_error(level, float(errors[i].mean()))
 
     def _train_step(self):
+        import time
+        cuda = self.device.type == "cuda"
+        sync = (lambda: t.cuda.synchronize()) if cuda else (lambda: None)
+        timings = {}
+
+        t0 = time.perf_counter()
         batch = self.replay.sample_batch(self.config.batch_size, extra_steps=0)
+        timings["sample"] = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         self.optimizer.zero_grad(set_to_none=True)
         with self._autocast():
             total_loss, diagnostics = self._compute_loss(batch)
+        sync()
+        timings["forward"] = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         total_loss.backward()
         t.nn.utils.clip_grad_norm_(
             self.network.parameters(),
             self.config.gradient_clip_norm,
         )
         self.optimizer.step()
+        sync()
+        timings["backward_step"] = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         if self.scheduler is not None:
             self.scheduler.step()
         self.ema_encoder.update()
+        timings["ema"] = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         self._priority_refresh_counter += 1
-        if self._priority_refresh_counter % max(1, self.config.priority_refresh_interval) == 0:
+        did_refresh = (
+            self._priority_refresh_counter
+            % max(1, self.config.priority_refresh_interval) == 0
+        )
+        if did_refresh:
             self._refresh_sample_priorities(batch)
+            sync()
+        timings["refresh"] = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         rnd_loss = self.rnd.train_step(batch.obs[:, 0])
+        sync()
+        timings["rnd"] = time.perf_counter() - t0
+
         diagnostics["rnd_loss"] = rnd_loss
+
+        if self._priority_refresh_counter % 50 == 0:
+            total_ms = sum(timings.values()) * 1000
+            parts = " ".join(
+                f"{k}={v*1000:.0f}ms({v*1000/total_ms*100:.0f}%)"
+                for k, v in timings.items()
+            )
+            print(f"[grad={self._priority_refresh_counter}] total={total_ms:.0f}ms  {parts}", flush=True)
+
         return diagnostics
 
     def _submit_reanalyse(self):
@@ -684,6 +724,7 @@ def _parse_args():
     parser.add_argument("--mcts_backend", type=str, default=None, choices=("tensor", "python"))
     parser.add_argument("--max_episode_steps", type=int, default=None)
     parser.add_argument("--min_replay_transitions", type=int, default=None)
+    parser.add_argument("--train_steps_per_iter", type=int, default=None)
     parser.add_argument("--search_batch_size", type=int, default=None)
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--resume", action="store_true")
@@ -722,6 +763,8 @@ def main():
         updates["self_play_max_episode_steps"] = args.max_episode_steps
     if args.min_replay_transitions is not None:
         updates["min_replay_transitions"] = args.min_replay_transitions
+    if args.train_steps_per_iter is not None:
+        updates["train_steps_per_iter"] = args.train_steps_per_iter
     if args.search_batch_size is not None:
         updates["self_play_search_batch_size"] = args.search_batch_size
     if args.device is not None:

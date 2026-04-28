@@ -142,6 +142,11 @@ def log_muzero_metrics(tracking=None, diagnostics=None, replay=None,
         "train/env_steps": tracking.get("env_steps", 0),
         "train/gradient_steps": tracking.get("gradient_steps", 0),
     }
+    if tracking.get("gradient_steps", 0) > 0:
+        metrics["train/env_steps_per_grad"] = (
+            max(0, tracking.get("env_steps", 0) - getattr(config, "min_replay_transitions", 0))
+            / tracking["gradient_steps"]
+        )
     metrics.update(_distribution_stats(episode_lengths, "train/episode_length"))
     metrics.update(_distribution_stats(tracking.get("x_max", []), "train/x_max"))
     metrics.update(_distribution_stats(episode_returns, "train/episode_return"))
@@ -183,6 +188,7 @@ def log_muzero_metrics(tracking=None, diagnostics=None, replay=None,
             "hyperparams/unroll_steps": config.unroll_steps,
             "hyperparams/mcts_num_simulations": config.mcts_num_simulations,
             "hyperparams/replay_beta": config.replay_beta,
+            "hyperparams/train_steps_per_iter": config.train_steps_per_iter,
         })
 
     if eval_stats:

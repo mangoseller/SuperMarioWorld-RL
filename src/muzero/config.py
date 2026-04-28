@@ -19,7 +19,7 @@ class MuZeroConfig:
     encoder_widths: tuple = (128, 256, 256)
     encoder_res_blocks: int = 8
     dynamics_channels: int = 512
-    dynamics_res_blocks: int = 22
+    dynamics_res_blocks: int = 8
     num_actions: int = 14
     ema_decay: float = 0.99
     proj_dim: int = 512
@@ -35,7 +35,7 @@ class MuZeroConfig:
 
     replay_capacity: int = 1_000_000
     frontier_capacity: int = 100_000
-    unroll_steps: int = 10
+    unroll_steps: int = 5
     td_steps: int = 5
     replay_alpha: float = 0.6
     replay_beta: float = 0.4
@@ -149,6 +149,7 @@ def first_real_run_config():
         batch_size=512,
         reanalyse_batch_size=512,
         min_replay_transitions=20_000,
+        train_steps_per_iter=7,
         plr_initial_levels=4,
         plr_levels_per_addition=0,
         eval_episodes_per_level=2,
