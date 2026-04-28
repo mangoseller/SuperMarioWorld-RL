@@ -43,11 +43,11 @@ class MuZeroConfig:
     frontier_sample_fraction: float = 0.5
     frontier_margin: float = 16.0
     x_percentile_window: int = 10_000
-    weight_refresh_interval: int = 200
+    weight_refresh_interval: int = 2_000
     reanalyse_batch_size: int = 256
     priority_refresh_interval: int = 4
 
-    mcts_num_simulations: int = 8
+    mcts_num_simulations: int = 32
     mcts_max_depth: int = 10
     mcts_max_num_considered_actions: int = 16
     mcts_gumbel_scale: float = 1.0
@@ -84,7 +84,8 @@ class MuZeroConfig:
     checkpoint_keep_last: int = 2
     log_freq: int = 1_000
     reanalyse_interval: int = 1
-    max_pending_reanalyse: int = 2
+    max_pending_reanalyse: int = 1
+    train_steps_per_iter: int = 4
     use_amp: bool = True
     use_compile: bool = True
     progress_refresh_sec: float = 0.5
@@ -92,9 +93,10 @@ class MuZeroConfig:
     wandb_project: str = "marioRL"
     show_progress: bool = True
 
-    rnd_coef_start: float = 1.0
+    rnd_coef_start: float = 0.5
     rnd_coef_end: float = 0.0
-    rnd_anneal_steps: int = 500_000
+    # All `*_steps` schedule thresholds below are in env_steps (not gradient_steps).
+    rnd_anneal_steps: int = 1_500_000
     rnd_clip: float = 2.0
     rnd_channels: int = 64
     rnd_embedding_dim: int = 256
@@ -106,16 +108,17 @@ class MuZeroConfig:
     plr_initial_levels: int = 6
     plr_levels_per_addition: int = 3
 
-    mcts_ramp_start: int = 200_000
-    mcts_ramp_end: int = 400_000
+    # mcts_ramp / max_steps thresholds are in env_steps.
+    mcts_ramp_start: int = 100_000
+    mcts_ramp_end: int = 1_500_000
     mcts_sims_frontier: int = 64
-    mcts_sims_mid: int = 32
-    mcts_sims_easy: int = 16
+    mcts_sims_mid: int = 48
+    mcts_sims_easy: int = 32
 
     max_steps_early_multiplier: float = 2.0
     max_steps_early_end_step: int = 500_000
 
-    eval_freq: int = 50_000
+    eval_freq: int = 200_000
     eval_episodes_per_level: int = 3
     eval_mcts_sims: int = 64
 

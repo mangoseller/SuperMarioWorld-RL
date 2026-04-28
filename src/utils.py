@@ -59,6 +59,46 @@ def _mean(values):
     return float(np.mean(values))
 
 
+def _distribution_stats(values, prefix):
+    if values is None or len(values) == 0:
+        return {}
+    arr = np.asarray(values, dtype=np.float64)
+    return {
+        f"{prefix}/min": float(arr.min()),
+        f"{prefix}/p10": float(np.percentile(arr, 10)),
+        f"{prefix}/p50": float(np.percentile(arr, 50)),
+        f"{prefix}/p90": float(np.percentile(arr, 90)),
+        f"{prefix}/max": float(arr.max()),
+    }
+
+
+# Thresholds in (frame-skipped) env steps and game-x units.
+# instant_steps=60 ≈ 3 s at frame_skip=3, 60 Hz. Spawn x is ~16, so x≤32 ≈ "barely moved",
+# x≤100 ≈ "tiny progress in a several-thousand-unit-long level".
+def _episode_outcomes(episode_lengths, x_max_values,
+                      instant_steps=60, no_movement_x=32, wandering_x=100):
+    if not episode_lengths or not x_max_values:
+        return {}
+    n = min(len(episode_lengths), len(x_max_values))
+    if n == 0:
+        return {}
+    counts = {"instant_death": 0, "no_movement": 0, "wandering": 0, "progressing": 0}
+    for L, xm in zip(episode_lengths[:n], x_max_values[:n]):
+        if L <= instant_steps:
+            counts["instant_death"] += 1
+        elif xm <= no_movement_x:
+            counts["no_movement"] += 1
+        elif xm <= wandering_x:
+            counts["wandering"] += 1
+        else:
+            counts["progressing"] += 1
+    metrics = {f"train/outcome/{k}_frac": v / n for k, v in counts.items()}
+    metrics["train/outcome/degenerate_frac"] = (
+        counts["instant_death"] + counts["no_movement"] + counts["wandering"]
+    ) / n
+    return metrics
+
+
 def _metric_value(value):
     if isinstance(value, t.Tensor):
         if value.numel() != 1:
@@ -102,6 +142,10 @@ def log_muzero_metrics(tracking=None, diagnostics=None, replay=None,
         "train/env_steps": tracking.get("env_steps", 0),
         "train/gradient_steps": tracking.get("gradient_steps", 0),
     }
+    metrics.update(_distribution_stats(episode_lengths, "train/episode_length"))
+    metrics.update(_distribution_stats(tracking.get("x_max", []), "train/x_max"))
+    metrics.update(_distribution_stats(episode_returns, "train/episode_return"))
+    metrics.update(_episode_outcomes(episode_lengths, tracking.get("x_max", [])))
     for worker_type, count in tracking.get("worker_type_counts", {}).items():
         metrics[f"self_play/worker_type/{worker_type}/episodes"] = count
 

@@ -461,10 +461,10 @@ class _AsyncMuZeroTrainer:
                 self.self_play_errors += 1
                 raise RuntimeError(f"Unexpected self-play message: {item}")
             trajectory = item["trajectory"]
-            coef = self.rnd.current_coef(tracking["gradient_steps"])
+            coef = self.rnd.current_coef(tracking["env_steps"])
             if coef > 0.0:
                 intrinsic = self.rnd.compute_intrinsic(
-                    trajectory.obs[:-1], tracking["gradient_steps"]
+                    trajectory.obs[:-1], tracking["env_steps"]
                 )
                 trajectory = replace(trajectory, rewards=trajectory.rewards + intrinsic)
             self.replay.add_trajectory(trajectory)
@@ -537,21 +537,22 @@ class _AsyncMuZeroTrainer:
                 self._check_process_health()
 
                 if new_episodes > 0 and self.plr.maybe_add_levels():
-                    self._broadcast_weights(tracking["gradient_steps"], force=True)
+                    self._broadcast_weights(tracking["env_steps"], force=True)
 
                 replay_ready = (
                     len(self.replay) >= self.config.min_replay_transitions
                     and self.replay.num_trajectories > 0
                 )
                 if replay_ready:
-                    self._submit_reanalyse()
-                    diagnostics = self._train_step()
-                    tracking["gradient_steps"] += 1
-                    self._broadcast_weights(tracking["gradient_steps"])
+                    train_steps = max(1, int(getattr(self.config, "train_steps_per_iter", 1)))
+                    for _ in range(train_steps):
+                        self._submit_reanalyse()
+                        diagnostics = self._train_step()
+                        tracking["gradient_steps"] += 1
+                    self._broadcast_weights(tracking["env_steps"])
 
-                    grad_step = tracking["gradient_steps"]
                     if (
-                        grad_step - tracking.get("last_eval_step", 0)
+                        tracking["env_steps"] - tracking.get("last_eval_step", 0)
                         >= self.config.eval_freq
                     ):
                         eval_stats = run_muzero_eval(
@@ -564,7 +565,7 @@ class _AsyncMuZeroTrainer:
                             step=tracking["env_steps"],
                             eval_stats=eval_stats,
                         )
-                        tracking["last_eval_step"] = grad_step
+                        tracking["last_eval_step"] = tracking["env_steps"]
 
                 if tracking["env_steps"] - last_log_step >= self.config.log_freq:
                     log_muzero_metrics(
@@ -584,7 +585,7 @@ class _AsyncMuZeroTrainer:
                         config=self.config,
                         step=tracking["env_steps"],
                         plr_stats=self.plr.level_stats(),
-                        rnd_coef=self.rnd.current_coef(tracking["gradient_steps"]),
+                        rnd_coef=self.rnd.current_coef(tracking["env_steps"]),
                     )
                     tracking["episode_returns"].clear()
                     tracking["episode_lengths"].clear()
