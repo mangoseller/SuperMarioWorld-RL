@@ -2,7 +2,7 @@
 
 An implementation of **Proximal Policy Optimization (PPO)** in PyTorch, trained to play *Super Mario World* (SNES) directly from pixels.
 
-The agent successfully completed two previously unseen levels, including the challenging Vanilla Dome 5. While successful completions were rare and generalization remained inconsistent, these results demonstrate that the learned policy could transfer beyond its training environments.
+The agent successfully completed two previously unseen levels, including the challenging Vanilla Dome 5. While successful completions were rare and generalization remained inconsistent, these results show that the learned policy could transfer beyond its training environments.
 
 ### Vanilla Dome 5 — Zero-shot completion
 
@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/0dbeaa94-010e-44ab-a91e-5b492f1a5f8d
 
 ## Implementation
 
-I implemented PPO from scratch in PyTorch, including the clipped surrogate objective, Generalized Advantage Estimation, and the rollout and optimization pipeline. The agent learns from stacked grayscale frames, selecting actions from a discrete set of SNES controller inputs. Emulator RAM is used to construct rewards, but the policy itself receives only visual observations.
+I implemented PPO from scratch in PyTorch, including the clipped surrogate objective, Generalized Advantage Estimation, and the rollout and optimization pipeline. The agent learns from stacked grayscale frames, selecting actions from a discrete set of SNES controller inputs. Emulator RAM is used to construct rewards, but the policy itself receives only the stacked frames.
 
 I experimented with three convolutional actor-critic architectures, progressing from a small CNN to wider [IMPALA](https://arxiv.org/abs/1802.01561)-inspired residual networks incorporating Fourier positional embeddings, spatial softmax, and an auxiliary pixel-change prediction objective. The latter was intended to introduce an inductive bias toward dynamic regions of the environment, such as moving enemies, rather than largely static background elements.
 
@@ -41,7 +41,7 @@ An early variant of the reward function incentivized horizontal movement naively
   }
 }
 ```
-The intention was to provide a dense learning signal for progress through the level, rather than relying exclusively on the extremely sparse reward associated with level completion.
+The intention was to provide a dense learning signal for progress through the level, rather than relying exclusively on the sparse reward associated with level completion.
 
 https://github.com/user-attachments/assets/924fa10f-fb9d-4ca5-858b-e6164de54b88
 
@@ -67,7 +67,7 @@ Agents learned to exploit message blocks that temporarily pause the game clock, 
   }
 }
 ```
-Because the penalty depended on changes in the countdown timer, no penalty accumulated while the clock was paused. In one instance, this produced an episode lasting over 20 minutes, ultimately crashing the training process.
+Because the penalty depended on changes in the countdown timer, no penalty accumulated while the clock was paused. In one instance, this produced an episode lasting over 20 minutes, ultimately crashing training.
 
 
 https://github.com/user-attachments/assets/9bbe6a29-f34e-42cd-9aa4-0a5b8eb974e0
