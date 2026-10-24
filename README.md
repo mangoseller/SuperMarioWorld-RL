@@ -1,4 +1,4 @@
-# Super Mario World — Reinforcement Learning
+# RL for SMW 
 
 An implementation of **Proximal Policy Optimization (PPO)** in PyTorch, trained to play *Super Mario World* (SNES) directly from pixels.
 
